@@ -1,5 +1,5 @@
 {
-  description = "A Nix flake for tmesh including a NixOS module";
+  description = "Effortlessly manage tmux sessions across multiple hosts";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.05";
@@ -19,12 +19,12 @@
           inherit pkgs;
         };
         tmesh-module = import ./nix/module.nix inputs;
-        # docker = import ./nix/docker.nix {
-        #   inherit pkgs tmesh;
-        # };
+        docker = import ./nix/docker.nix {
+          inherit pkgs tmesh;
+        };
       in {
         packages.tmesh = tmesh;
-        # packages.docker = docker;
+        packages.docker = docker;
         nixosModules.default = tmesh-module;
 
         defaultPackage = tmesh;

@@ -1,5 +1,7 @@
 # tmesh
 
+[![FlakeHub](https://img.shields.io/endpoint?url=https://flakehub.com/f/simonwjackson/tmesh/badge)](https://flakehub.com/flake/simonwjackson/tmesh)
+
 Effortlessly manage tmux sessions across multiple hosts.
 
 tmesh is a powerful script that simplifies the process of accessing and managing tmux sessions across different servers, allowing you to seamlessly switch between sessions and hosts with ease.
@@ -14,5 +16,28 @@ tmesh is a powerful script that simplifies the process of accessing and managing
 ## Try it out
 
 ```
-nix --experimental-features 'nix-command flakes' run --refresh 'github:simonwjackson/tmesh'
+nix run 'github:simonwjackson/tmesh'
+
+# To enable flakes
+# nix --experimental-features 'nix-command flakes' run 'github:simonwjackson/tmesh'
+
+# Ignore cached version
+# nix run --refresh 'github:simonwjackson/tmesh'
+
+```
+
+# Usage as a flake
+
+
+Add tmesh to your `flake.nix`:
+
+```nix
+{
+  inputs.tmesh.url = "https://flakehub.com/f/simonwjackson/tmesh/*.tar.gz";
+
+  outputs = { self, tmesh }: {
+    # Use in your outputs
+  };
+}
+
 ```
