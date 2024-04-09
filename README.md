@@ -17,14 +17,17 @@ tmesh is a powerful script that simplifies the process of accessing and managing
 
 ```
 nix run 'github:simonwjackson/tmesh'
-
-# To enable flakes
-# nix --experimental-features 'nix-command flakes' run 'github:simonwjackson/tmesh'
-
-# Ignore cached version
-# nix run --refresh 'github:simonwjackson/tmesh'
-
 ```
+
+If the above command fails, try the following:
+
+> Enable flakes (inline)
+>
+> nix --experimental-features 'nix-command flakes' run 'github:simonwjackson/tmesh'
+> 
+> Ignore a cached version
+> 
+> nix run --refresh 'github:simonwjackson/tmesh'
 
 # Usage as a flake
 
