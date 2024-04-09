@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+
+TMUX="${TMUX:-}"
+TERM="${TERM:-}"
+SERVER="${SERVER:=$(hostname)}"
+SCRIPT_DIR="$(dirname "$0")"
+
+TMESH_DEFAULT_SESSION=${TMESH_DEFAULT_SESSION=:-""}
+TMESH_USER_CONFIG=${TMESH_USER_CONFIG:-}
+TMESH_SOCKET=${TMESH_SOCKET:-"tmesh"}
+
+read -r -d '' tmesh_default_config <<EOM
+# INFO: https://github.com/tmux/tmux/wiki/Clipboard#terminal-support---tmux-inside-tmux
+set -s set-clipboard on
+set -as terminal-features ',@TERM:clipboard'
+
+# Don't block inner tmux session, reassign the prefix
+set -g prefix C-a
+unbind-key C-b
+bind-key C-a send-prefix
+
+# Server Switcher
+bind-key -n 'M-s' display-popup -E -w 80% -h 80% "${SCRIPT_DIR@Q}/choose-session.sh"
+
+# Local Mahine term
+bind-key -n 'M-i' display-popup -E -w 80% -h 80%
+EOM
+
+tmesh_default_config=${tmesh_default_config/@TERM/$TERM}
+
+tmux_config=(
+  "${tmesh_default_config[@]}"
+  "${TMESH_USER_CONFIG[@]}"
+)
+
+tryStartTmesh() {
+  if ! tmux -L "${TMESH_SOCKET}" has-session -t "${TMESH_DEFAULT_SESSION}" 2>/dev/null; then
+    tmux \
+      -f <(printf "%s\n" "${tmux_config[@]}") \
+      -L "${TMESH_SOCKET}" \
+      new-session \
+      -s "${TMESH_DEFAULT_SESSION}" \
+      -d \
+      mosh "${SERVER}" -- sh -c "TMUX_REMOTE_INSTANCE_SOCKET=$TMUX_REMOTE_SOCKET ${SCRIPT_DIR}/tmesh-server"
+  fi
+}
+
+tryConnectTmux() {
+  local action
+
+  if [[ -z "${TMUX}" ]]; then
+    action="attach-session"
+  else
+    action="switch-client"
+  fi
+
+  tmux -L "${TMESH_SOCKET}" "${action}" -t "${TMESH_DEFAULT_SESSION}"
+}
+
+main() {
+  tryStartTmesh
+  tryConnectTmux
+}
+
+main
