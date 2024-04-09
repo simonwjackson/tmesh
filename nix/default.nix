@@ -1,8 +1,4 @@
-{
-  pkgs,
-  lib,
-  ...
-}:
+{pkgs, ...}:
 pkgs.resholve.mkDerivation rec {
   pname = "tmesh";
   version = "unstable";
@@ -71,7 +67,7 @@ pkgs.resholve.mkDerivation rec {
     };
   };
 
-  meta = with lib; {
+  meta = with pkgs.lib; {
     homepage = "https://github.com/simonwjackson/tmesh";
     description = "Effortlessly manage tmux sessions across multiple hosts.";
     license = licenses.gpl2Only;
