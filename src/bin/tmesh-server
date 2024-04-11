@@ -3,8 +3,9 @@
 SCRIPT_DIR="$(dirname "$0")"
 TMESH_SERVER_SOCKET=${TMESH_SERVER_SOCKET:-"workspace"}
 TMUX_CONFIG=${TMUX_CONFIG:="${SCRIPT_DIR}/../etc/tmesh/tmesh-server.tmux.conf"}
+TMESH_CONFIG=${TMESH_CONFIG:="/etc/tmesh/config.json"}
 
-COMMAND="$(yq -e '.local-tmesh-server.command' ./config.yaml 2>/dev/null || echo "${SHELL}")"
+COMMAND="$(yq -e -oy '.local-tmesh-server.command' "${TMESH_CONFIG}" 2>/dev/null || echo "${SHELL}")"
 
 tmux \
   -L "${TMESH_SERVER_SOCKET}" \

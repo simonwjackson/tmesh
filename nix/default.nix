@@ -17,7 +17,10 @@ pkgs.resholve.mkDerivation rec {
 
     substituteInPlace $out/bin/choose-session.sh \
       --replace "@tmux" "${pkgs.lib.meta.getExe pkgs.tmux}" \
-      --replace "@jq" "${pkgs.lib.meta.getExe pkgs.jq}"
+      --replace "@jq" "${pkgs.lib.meta.getExe pkgs.jq}" \
+
+    substituteInPlace $out/bin/tmesh \
+      --replace "mosh " "${pkgs.lib.meta.getExe pkgs.mosh} "
 
     runHook postInstall
   '';
@@ -33,16 +36,17 @@ pkgs.resholve.mkDerivation rec {
       inputs =
         [
           "${placeholder "out"}/bin"
-          pkgs.fzf
         ]
         ++ (with pkgs; [
           bash
           coreutils
           fd
           findutils
+          fzf
           gawk
           gnused
           jq
+          mosh
           nettools
           tmux
           yq-go
@@ -62,6 +66,7 @@ pkgs.resholve.mkDerivation rec {
         "cannot:${pkgs.fzf}/bin/fzf"
         "cannot:${pkgs.tmux}/bin/tmux"
         "cannot:${pkgs.yq-go}/bin/yq"
+        "cannot:${pkgs.mosh}/bin/mosh"
       ];
     };
   };
