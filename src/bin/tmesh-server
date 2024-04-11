@@ -1,19 +1,18 @@
 #!/usr/bin/env bash
 
 SCRIPT_DIR="$(dirname "$0")"
-TMESH_SERVER_INSTANCE_SOCKET=${TMESH_SERVER_INSTANCE_SOCKET:-"workspace"}
+TMESH_SERVER_SOCKET=${TMESH_SERVER_SOCKET:-"workspace"}
 TMUX_CONFIG=${TMUX_CONFIG:="${SCRIPT_DIR}/../etc/tmesh/tmesh-server.tmux.conf"}
-TMESH_CONFIG=${TMESH_CONFIG:="/etc/tmesh/config.json"}
 
 COMMAND="$(yq -e '.local-tmesh-server.command' ./config.yaml 2>/dev/null || echo "${SHELL}")"
 
 tmux \
-  -L "${TMESH_SERVER_INSTANCE_SOCKET}" \
+  -L "${TMESH_SERVER_SOCKET}" \
   -f "${TMUX_CONFIG}" \
   attach-session \
   -t terminals ||
   tmux \
-    -L "${TMESH_SERVER_INSTANCE_SOCKET}" \
+    -L "${TMESH_SERVER_SOCKET}" \
     -f "${TMUX_CONFIG}" \
     new-session \
     -s terminals \

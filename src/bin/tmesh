@@ -59,9 +59,8 @@ tryStartTmesh() {
       -L "${TMESH_SOCKET}" \
       new-session \
       -s "${TMESH_DEFAULT_SESSION}" \
-      -d
-    # \
-    # mosh "${SERVER}" -- sh -c "TMESH_SOCKET=$TMESH_SOCKET ${SCRIPT_DIR}/tmesh-server"
+      -d \
+      mosh "${SERVER}" -- sh -c "${SCRIPT_DIR}/tmesh-server"
   fi
 }
 
