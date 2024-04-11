@@ -23,7 +23,6 @@ TERM="${TERM:-}"
 SERVER="${SERVER:=$(hostname)}"
 SCRIPT_DIR="$(dirname "$0")"
 
-TMESH_DEFAULT_SESSION=${TMESH_DEFAULT_SESSION=:-""}
 TMESH_USER_CONFIG=${TMESH_USER_CONFIG:-}
 export TMESH_SOCKET=${TMESH_SOCKET:-"tmesh"}
 
@@ -38,7 +37,7 @@ unbind-key C-b
 bind-key C-a send-prefix
 
 # Server Switcher
-bind-key -n 'M-s' display-popup -E -w 80% -h 80% "${SCRIPT_DIR@Q}/choose-session.sh"
+bind-key -n 'M-A' display-popup -E -w 80% -h 80% "${SCRIPT_DIR@Q}/choose-nest.sh"
 
 # Local Mahine term
 bind-key -n 'M-i' display-popup -E -w 80% -h 80%
@@ -52,28 +51,24 @@ tmux_config=(
 )
 
 tryStartTmesh() {
-  if ! tmux -L "${TMESH_SOCKET}" has-session -t "${TMESH_DEFAULT_SESSION}" 2>/dev/null; then
+  if ! tmux -L "${TMESH_SOCKET}" has-session -t "${SERVER}" 2>/dev/null; then
     TMESH_CONFIG="${TMESH_CONFIG}" \
       tmux \
       -f <(printf "%s\n" "${tmux_config[@]}") \
       -L "${TMESH_SOCKET}" \
       new-session \
-      -s "${TMESH_DEFAULT_SESSION}" \
+      -s "${SERVER}" \
       -d \
       mosh "${SERVER}" -- sh -c "${SCRIPT_DIR}/tmesh-server"
   fi
 }
 
 tryConnectTmux() {
-  local action
-
   if [[ -z "${TMUX}" ]]; then
-    action="attach-session"
+    tmux -L "${TMESH_SOCKET}" attach-session -t "${SERVER}"
   else
-    action="switch-client"
+    tmux -L "${TMESH_SOCKET}" switch-client -t "${SERVER}"
   fi
-
-  tmux -L "${TMESH_SOCKET}" "${action}" -t "${TMESH_DEFAULT_SESSION}"
 }
 
 main() {

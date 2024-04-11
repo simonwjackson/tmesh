@@ -56,7 +56,6 @@ pkgs.resholve.mkDerivation rec {
           # Make sure we can self reference our scripts
           "choose-host"
           "choose-session"
-          "tmesh"
           "tmesh-server"
         ];
       };
@@ -67,6 +66,7 @@ pkgs.resholve.mkDerivation rec {
         "cannot:${pkgs.tmux}/bin/tmux"
         "cannot:${pkgs.yq-go}/bin/yq"
         "cannot:${pkgs.mosh}/bin/mosh"
+        "cannot:${placeholder "out"}/bin/tmesh"
       ];
     };
   };
