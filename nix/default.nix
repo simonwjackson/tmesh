@@ -76,5 +76,6 @@ pkgs.resholve.mkDerivation rec {
     homepage = "https://github.com/simonwjackson/tmesh";
     license = licenses.gpl2Only;
     platforms = platforms.linux;
+    mainProgram = pname;
   };
 }
