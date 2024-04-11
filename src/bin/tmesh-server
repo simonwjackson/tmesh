@@ -3,7 +3,9 @@
 SCRIPT_DIR="$(dirname "$0")"
 TMESH_SERVER_INSTANCE_SOCKET=${TMESH_SERVER_INSTANCE_SOCKET:-"workspace"}
 TMUX_CONFIG=${TMUX_CONFIG:="${SCRIPT_DIR}/../etc/tmesh/tmesh-server.tmux.conf"}
-# nvim -c "terminal" -c "startinsert" >/dev/null 2>&1
+TMESH_CONFIG=${TMESH_CONFIG:="/etc/tmesh/config.json"}
+
+COMMAND="$(yq -e '.local-tmesh-server.command' ./config.yaml 2>/dev/null || echo "${SHELL}")"
 
 tmux \
   -L "${TMESH_SERVER_INSTANCE_SOCKET}" \
@@ -15,4 +17,4 @@ tmux \
     -f "${TMUX_CONFIG}" \
     new-session \
     -s terminals \
-    "${SHELL}"
+    "${COMMAND}" >/dev/null 2>&1

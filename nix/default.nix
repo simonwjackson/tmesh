@@ -15,11 +15,9 @@ pkgs.resholve.mkDerivation rec {
 
     find $src -type f -exec bash -c 'file="$1"; install -Dm 755 "$file" "$out/''${file#$src/}"' -- {} \;
 
-    # substituteInPlace $out/bin/* \
-    #   --replace /etc/tmesh $out/etc/tmesh
-
-    # mkdir -p $out/etc/tmesh
-    # cp $src/etc/tmesh/*.tmux.conf $out/etc/tmesh
+    substituteInPlace $out/bin/choose-session.sh \
+      --replace "@tmux" "${pkgs.lib.meta.getExe pkgs.tmux}" \
+      --replace "@jq" "${pkgs.lib.meta.getExe pkgs.jq}"
 
     runHook postInstall
   '';
@@ -38,38 +36,39 @@ pkgs.resholve.mkDerivation rec {
           pkgs.fzf
         ]
         ++ (with pkgs; [
+          bash
           coreutils
-          tmux
-          coreutils
-          gnused
-          jq
           fd
           findutils
-          bash
           gawk
+          gnused
+          jq
           nettools
+          tmux
+          yq-go
         ]);
       fake = {
         external = [
           # Make sure we can self reference our scripts
-          "tmesh"
-          "tmesh-server"
           "choose-host"
           "choose-session"
+          "tmesh"
+          "tmesh-server"
         ];
       };
       execer = [
         # resholve cannot verify args from these apps
-        "cannot:${pkgs.tmux}/bin/tmux"
-        "cannot:${pkgs.fzf}/bin/fzf"
         "cannot:${pkgs.fd}/bin/fd"
+        "cannot:${pkgs.fzf}/bin/fzf"
+        "cannot:${pkgs.tmux}/bin/tmux"
+        "cannot:${pkgs.yq-go}/bin/yq"
       ];
     };
   };
 
   meta = with pkgs.lib; {
-    homepage = "https://github.com/simonwjackson/tmesh";
     description = "Effortlessly manage tmux sessions across multiple hosts.";
+    homepage = "https://github.com/simonwjackson/tmesh";
     license = licenses.gpl2Only;
     platforms = platforms.linux;
   };

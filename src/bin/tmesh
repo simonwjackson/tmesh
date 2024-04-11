@@ -1,5 +1,23 @@
 #!/usr/bin/env bash
 
+while [[ "$#" -gt 0 ]]; do
+  case $1 in
+  --config)
+    if [[ "$#" -gt 1 ]]; then
+      TMESH_CONFIG="$2"
+      shift 2
+    else
+      echo "Error: --config option requires an argument."
+      exit 1
+    fi
+    ;;
+  *)
+    echo "Unknown parameter passed: $1"
+    exit 1
+    ;;
+  esac
+done
+
 TMUX="${TMUX:-}"
 TERM="${TERM:-}"
 SERVER="${SERVER:=$(hostname)}"
@@ -7,7 +25,7 @@ SCRIPT_DIR="$(dirname "$0")"
 
 TMESH_DEFAULT_SESSION=${TMESH_DEFAULT_SESSION=:-""}
 TMESH_USER_CONFIG=${TMESH_USER_CONFIG:-}
-TMESH_SOCKET=${TMESH_SOCKET:-"tmesh"}
+export TMESH_SOCKET=${TMESH_SOCKET:-"tmesh"}
 
 read -r -d '' tmesh_default_config <<EOM
 # INFO: https://github.com/tmux/tmux/wiki/Clipboard#terminal-support---tmux-inside-tmux
@@ -35,13 +53,15 @@ tmux_config=(
 
 tryStartTmesh() {
   if ! tmux -L "${TMESH_SOCKET}" has-session -t "${TMESH_DEFAULT_SESSION}" 2>/dev/null; then
-    tmux \
+    TMESH_CONFIG="${TMESH_CONFIG}" \
+      tmux \
       -f <(printf "%s\n" "${tmux_config[@]}") \
       -L "${TMESH_SOCKET}" \
       new-session \
       -s "${TMESH_DEFAULT_SESSION}" \
-      -d \
-      mosh "${SERVER}" -- sh -c "TMUX_REMOTE_INSTANCE_SOCKET=$TMUX_REMOTE_SOCKET ${SCRIPT_DIR}/tmesh-server"
+      -d
+    # \
+    # mosh "${SERVER}" -- sh -c "TMESH_SOCKET=$TMESH_SOCKET ${SCRIPT_DIR}/tmesh-server"
   fi
 }
 

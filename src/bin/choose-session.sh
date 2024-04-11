@@ -20,31 +20,18 @@ function replace_spaces_with_delimiter() {
 
 export -f replace_spaces_with_delimiter
 
-display_icon() {
-  icon_inactive=""
-  icon_active=""
-
-  if [ "$1" ]; then
-    echo "$icon_active"
-  else
-    echo "$icon_inactive"
-  fi
-}
-
-export -f display_icon
-
 fzf_format_entry() {
   local project_path="$1"
-  local project_name session_name json_obj tmux_status=""
+  local project_name json_obj tmux_status=""
 
   project_root_dir=$(dirname "$project_path")
   project_name=$(basename "$project_root_dir")
   json_obj='{"path":"'"${project_root_dir}"'","type":"code","session":"'"${project_name}"'"}'
 
-  if tmux has-session -t "$session_name" >/dev/null 2>&1; then
-    tmux_status=""
-  else
+  if tmux -L "${TMESH_SOCKET}" has-session -t "${project_name}" >/dev/null 2>&1; then
     tmux_status=""
+  else
+    tmux_status=""
   fi
 
   printf "%s;%s;%s\n" "${json_obj}" "${tmux_status}" "${project_name}" |
@@ -61,47 +48,6 @@ get_code_projects() {
     --search-path "${code_path}"
 }
 
-# fzf_format_entry() {
-#   json_obj="$1"
-#   session_name=$(jq -r '.session' <<<"$json_obj")
-#   tmux_status=$(
-#     tmux has-session -t "$session_name" >/dev/null 2>&1 &&
-#       echo "" ||
-#       echo ""
-#   )
-#
-#   printf "%s;%s;%s\n" "$json_obj" "$tmux_status" "$session_name" |
-#     replace_delimiter_with_spaces ';' 2
-# }
-#
-# get_code_projects() {
-#   local code_path="${1}"
-#   fd \
-#     --type directory \
-#     --hidden '^.bare$|^.git$' \
-#     --search-path "${code_path}" |
-#     while read -r project_path; do
-#       parent_dir=$(basename "$(dirname "$project_path")")
-#       project_name=$(basename "$project_path")
-#       session_name="${parent_dir}/${project_name}"
-#       json_obj=$(printf '{ "path": "%s", "type": "code", "session": "%s" }' "$project_path" "$session_name")
-#       fzf_format_entry "$json_obj"
-#     done
-# }
-
-#   {
-#     get_code_projects "/glacier/snowscape/code"
-#   } |
-#     fzf \
-#       --header Projects \
-#       --preview 'tmux capture-pane -e -pt $(jq -r ".session" <<< "{}" 2> /dev/null)' \
-#       --bind 'ctrl-c:abort' \
-#       --delimiter=$'\u2007' \
-#       --with-nth=2.. |
-#     replace_spaces_with_delimiter ';' 2 |
-#     awk -F';' '{print $1}'
-# )
-
 selection=$(
   {
     get_code_projects "/glacier/snowscape/code" |
@@ -111,7 +57,7 @@ selection=$(
   } |
     fzf \
       --header Projects \
-      --preview 'tmux capture-pane -e -pt $(jq -r ".session" <<< "{}" 2> /dev/null)' \
+      --preview '@tmux capture-pane -e -pt $(@jq -r ".session" <<< "{}" 2> /dev/null)' \
       --bind 'ctrl-c:abort' \
       --delimiter=$'\u2007' \
       --with-nth=2.. |
