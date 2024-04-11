@@ -32,7 +32,7 @@ in {
     environment.etc."${pname}/config.json".source = jsonConfigFile;
 
     environment.systemPackages = [
-      (pkgs.writeScriptBin "${pname}-wrapped" ''
+      (pkgs.writeScriptBin "${pname}" ''
         #!${pkgs.stdenv.shell}
         exec ${pkgs.lib.meta.getExe cfg.package} --config ${jsonConfigFile} "$@"
       '')
