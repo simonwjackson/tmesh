@@ -10,6 +10,8 @@ COMMAND="$(yq -e -oy '.local-tmesh-server.command' "${TMESH_CONFIG}" 2>/dev/null
 read -r -d '' tmesh_default_config <<EOM
 # Project switcher
 bind-key -n 'M-a' display-popup -E -w 80% -h 80% "${SCRIPT_DIR@Q}/choose-session.sh"
+
+set -g status off
 EOM
 
 tmesh_server_default_config=${tmesh_default_config/@TERM/$TERM}

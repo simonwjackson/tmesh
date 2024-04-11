@@ -41,6 +41,8 @@ bind-key -n 'M-A' display-popup -E -w 80% -h 80% "${SCRIPT_DIR@Q}/choose-nest.sh
 
 # Local Mahine term
 bind-key -n 'M-i' display-popup -E -w 80% -h 80%
+
+set -g status off
 EOM
 
 tmesh_default_config=${tmesh_default_config/@TERM/$TERM}
