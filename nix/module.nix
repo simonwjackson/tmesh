@@ -42,8 +42,14 @@ in {
 
   config = lib.mkIf cfg.enable {
     environment.etc."${pname}/config.json".source = jsonConfigFile;
-    environment.etc."${pname}/tmesh.tmux.conf".source = cfg.tmeshTmuxConfig;
-    environment.etc."${pname}/tmesh-server.tmux.conf".source = cfg.tmeshServerTmuxConfig;
+    environment.etc."${pname}/tmesh-server.tmux.conf" = {
+      text = cfg.tmeshServerTmuxConfig;
+      mode = "0644";
+    };
+    environment.etc."${pname}/tmesh.tmux.conf" = {
+      text = cfg.tmeshTmuxConfig;
+      mode = "0644";
+    };
 
     environment.systemPackages = [
       (pkgs.writeScriptBin "${pname}" ''
