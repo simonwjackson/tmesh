@@ -2,23 +2,19 @@
 
 SCRIPT_DIR="$(dirname "$0")"
 TMESH_SERVER_SOCKET=${TMESH_SERVER_SOCKET:-"tmesh-server"}
-TMUX_CONFIG=${TMUX_CONFIG:="${SCRIPT_DIR}/../etc/tmesh/tmesh-server.tmux.conf"}
+TMUX_CONFIG=${TMUX_CONFIG:="/etc/tmesh/tmesh-server.tmux.conf"}
 TMESH_CONFIG=${TMESH_CONFIG:="/etc/tmesh/config.json"}
 
-COMMAND="$(yq -e -oy '.local-tmesh-server.command' "${TMESH_CONFIG}" 2>/dev/null || echo "${SHELL}")"
+command="$(yq -e -oy '.local-tmesh-server.command' "${TMESH_CONFIG}" 2>/dev/null || echo "${SHELL}")"
 
-read -r -d '' tmesh_default_config <<EOM
+read -r -d '' tmesh_server_default_config <<EOM
 # Project switcher
 bind-key -n 'M-a' display-popup -E -w 80% -h 80% "${SCRIPT_DIR@Q}/choose-session.sh"
-
-set -g status off
 EOM
-
-tmesh_server_default_config=${tmesh_default_config/@TERM/$TERM}
 
 tmux_config=(
   "${tmesh_server_default_config[@]}"
-  "${TMESH_USER_CONFIG[@]}"
+  "${TMESH_CONFIG[@]}"
 )
 
 tmux \
@@ -30,4 +26,4 @@ tmux \
     -f <(printf "%s\n" "${tmux_config[@]}") \
     new-session \
     -s terminals \
-    "${COMMAND}" >/dev/null 2>&1
+    "${command}" >/dev/null 2>&1

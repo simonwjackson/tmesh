@@ -26,10 +26,24 @@ in {
       default = package;
       description = "The package to use for ${pname}.";
     };
+
+    tmeshServerTmuxConfig = lib.mkOption {
+      type = lib.types.lines;
+      default = "";
+      description = "Tmux configuration for tmesh server.";
+    };
+
+    tmeshTmuxConfig = lib.mkOption {
+      type = lib.types.lines;
+      default = "";
+      description = "Tmux configuration for tmesh.";
+    };
   };
 
   config = lib.mkIf cfg.enable {
     environment.etc."${pname}/config.json".source = jsonConfigFile;
+    environment.etc."${pname}/tmesh.tmux.conf".source = cfg.tmeshTmuxConfig;
+    environment.etc."${pname}/tmesh-server.tmux.conf".source = cfg.tmeshServerTmuxConfig;
 
     environment.systemPackages = [
       (pkgs.writeScriptBin "${pname}" ''

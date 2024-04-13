@@ -22,34 +22,19 @@ TMUX="${TMUX:-}"
 TERM="${TERM:-}"
 SERVER="${SERVER:=$(hostname)}"
 SCRIPT_DIR="$(dirname "$0")"
-
-TMESH_USER_CONFIG=${TMESH_USER_CONFIG:-}
+TMUX_CONFIG=${TMUX_CONFIG:="/etc/tmesh/tmesh.tmux.conf"}
 export TMESH_SOCKET=${TMESH_SOCKET:-"tmesh"}
 
 read -r -d '' tmesh_default_config <<EOM
-# INFO: https://github.com/tmux/tmux/wiki/Clipboard#terminal-support---tmux-inside-tmux
-set -s set-clipboard on
-set -as terminal-features ',@TERM:clipboard'
-
-# Don't block inner tmux session, reassign the prefix
-set -g prefix C-a
-unbind-key C-b
-bind-key C-a send-prefix
-
 # Server Switcher
 bind-key -n 'M-A' display-popup -E -w 80% -h 80% "${SCRIPT_DIR@Q}/choose-nest.sh"
-
-# Local Mahine term
-bind-key -n 'M-i' display-popup -E -w 80% -h 80%
-
-set -g status off
 EOM
 
 tmesh_default_config=${tmesh_default_config/@TERM/$TERM}
 
 tmux_config=(
   "${tmesh_default_config[@]}"
-  "${TMESH_USER_CONFIG[@]}"
+  "${TMUX_CONFIG[@]}"
 )
 
 tryStartTmesh() {
