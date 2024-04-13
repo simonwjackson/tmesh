@@ -2,7 +2,7 @@
 
 SCRIPT_DIR="$(dirname "$0")"
 TMESH_SERVER_SOCKET=${TMESH_SERVER_SOCKET:-"tmesh-server"}
-TMUX_CONFIG=${TMUX_CONFIG:="/etc/tmesh/tmesh-server.tmux.conf"}
+TMUX_CONFIG=${TMUX_CONFIG:=$(cat /etc/tmesh/tmesh-server.tmux.conf)}
 TMESH_CONFIG=${TMESH_CONFIG:="/etc/tmesh/config.json"}
 
 command="$(yq -e -oy '.local-tmesh-server.command' "${TMESH_CONFIG}" 2>/dev/null || echo "${SHELL}")"

@@ -22,7 +22,7 @@ TMUX="${TMUX:-}"
 TERM="${TERM:-}"
 SERVER="${SERVER:=$(hostname)}"
 SCRIPT_DIR="$(dirname "$0")"
-TMUX_CONFIG=${TMUX_CONFIG:="/etc/tmesh/tmesh.tmux.conf"}
+TMUX_CONFIG=${TMUX_CONFIG:=$(cat /etc/tmesh/tmesh.tmux.conf)}
 export TMESH_SOCKET=${TMESH_SOCKET:-"tmesh"}
 
 read -r -d '' tmesh_default_config <<EOM
