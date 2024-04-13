@@ -22,18 +22,16 @@ TMUX="${TMUX:-}"
 TERM="${TERM:-}"
 SERVER="${SERVER:=$(hostname)}"
 SCRIPT_DIR="$(dirname "$0")"
-TMUX_CONFIG=${TMUX_CONFIG:=$(cat /etc/tmesh/tmesh.tmux.conf)}
+TMUX_CONFIG=$(cat /etc/tmesh/tmesh.tmux.conf)
 export TMESH_SOCKET=${TMESH_SOCKET:-"tmesh"}
 
-read -r -d '' tmesh_default_config <<EOM
+read -r -d '' tmux_default_config <<EOM
 # Server Switcher
 bind-key -n 'M-A' display-popup -E -w 80% -h 80% "${SCRIPT_DIR@Q}/choose-nest.sh"
 EOM
 
-tmesh_default_config=${tmesh_default_config/@TERM/$TERM}
-
 tmux_config=(
-  "${tmesh_default_config[@]}"
+  "${tmux_default_config[@]}"
   "${TMUX_CONFIG[@]}"
 )
 
