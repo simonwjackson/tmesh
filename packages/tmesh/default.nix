@@ -2,7 +2,7 @@
 pkgs.resholve.mkDerivation rec {
   pname = "tmesh";
   version = "unstable";
-  src = ../src;
+  src = ./.;
 
   postPatch = ''
   '';
