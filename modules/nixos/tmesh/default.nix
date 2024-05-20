@@ -12,7 +12,7 @@ inputs: {
   jsonConfig = builtins.toJSON cfg.settings;
   jsonConfigFile = pkgs.writeText "config.json" jsonConfig;
 in {
-  options.services.${pname} = {
+  options.programs.${pname} = {
     enable = lib.mkEnableOption "${pname}";
 
     settings = lib.mkOption {
@@ -42,10 +42,12 @@ in {
 
   config = lib.mkIf cfg.enable {
     environment.etc."${pname}/config.json".source = jsonConfigFile;
+
     environment.etc."${pname}/tmesh-server.tmux.conf" = {
       text = cfg.tmeshServerTmuxConfig;
       mode = "0644";
     };
+
     environment.etc."${pname}/tmesh.tmux.conf" = {
       text = cfg.tmeshTmuxConfig;
       mode = "0644";
