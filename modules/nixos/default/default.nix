@@ -9,7 +9,7 @@
   pname = "tmesh";
 
   package = inputs.self.packages.${system}.${pname};
-  cfg = config.services.${pname};
+  cfg = config.programs.${pname};
   jsonConfig = builtins.toJSON cfg.settings;
   jsonConfigFile = pkgs.writeText "config.json" jsonConfig;
 in {
