@@ -47,7 +47,7 @@
         # };
 
         modules = {
-          default = "tmesh";
+          default = "default";
         };
 
         # templates = {
