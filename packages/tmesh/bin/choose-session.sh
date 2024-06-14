@@ -50,7 +50,7 @@ get_code_projects() {
 
 selection=$(
   {
-    get_code_projects "/glacier/snowscape/code" |
+    get_code_projects "/snowscape/code" |
       while IFS= read -r project_path; do
         fzf_format_entry "$project_path"
       done
