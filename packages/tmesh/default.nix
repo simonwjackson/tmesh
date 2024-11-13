@@ -20,7 +20,7 @@ pkgs.resholve.mkDerivation rec {
       --replace "@jq" "${pkgs.lib.meta.getExe pkgs.jq}" \
 
     substituteInPlace $out/bin/tmesh \
-      --replace "mosh " "${pkgs.lib.meta.getExe pkgs.mosh} "
+      --replace "mosh " "${pkgs.mosh}/bin/mosh "
 
     runHook postInstall
   '';

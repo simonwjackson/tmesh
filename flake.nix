@@ -42,17 +42,9 @@
           default = "tmesh";
         };
 
-        # shells = {
-        #   default = "my-shell";
-        # };
-
         modules = {
           default = "default";
         };
-
-        # templates = {
-        #   default = "my-template";
-        # };
       };
     };
 }
