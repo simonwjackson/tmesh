@@ -1,58 +1,57 @@
 #!/usr/bin/env bash
 
-while [[ "$#" -gt 0 ]]; do
-  case $1 in
-  --config)
-    if [[ "$#" -gt 1 ]]; then
-      TMESH_CONFIG="$2"
-      shift 2
-    else
-      echo "Error: --config option requires an argument."
-      exit 1
-    fi
-    ;;
-  *)
-    echo "Unknown parameter passed: $1"
-    exit 1
-    ;;
-  esac
-done
-
 TMUX="${TMUX:-}"
 TERM="${TERM:-}"
+TMESH_SOCKET="${TMESH_SOCKET:-tmesh}"
 SERVER="${SERVER:=$(hostname)}"
-SCRIPT_DIR="$(dirname "$0")"
-TMUX_CONFIG=$(cat /etc/tmesh/tmesh.tmux.conf)
-export TMESH_SOCKET=${TMESH_SOCKET:-"tmesh"}
+CMD='nvim -c \"autocmd TermClose * if !v:event.status | quit | endif\" +terminal'
+TMESH_DEFAULT_CONFIG='
+# Server options
+set -as terminal-features ',tmux-256color:clipboard'
+set -g default-terminal "tmux-256color"
+set -g history-limit 50000
+set -g status-interval 5
+set -g focus-events on
 
-read -r -d '' tmux_default_config <<EOM
-# Server Switcher
-bind-key -n 'M-A' display-popup -E -w 80% -h 80% "${SCRIPT_DIR@Q}/choose-nest.sh"
-EOM
+# Window options  
+setw -g aggressive-resize on
+setw -g mode-keys vi
 
-tmux_config=(
-  "${tmux_default_config[@]}"
-  "${TMUX_CONFIG[@]}"
-)
+# Disable all the status bar stuff
+set -g status off
+'
 
 tryStartTmesh() {
-  if ! tmux -L "${TMESH_SOCKET}" has-session -t "${SERVER}" 2>/dev/null; then
-    TMESH_CONFIG="${TMESH_CONFIG}" \
-      tmux \
-      -f <(printf "%s\n" "${tmux_config[@]}") \
-      -L "${TMESH_SOCKET}" \
+  # Check if tmesh server session exists
+  if ! tmux -L "$TMESH_SOCKET" has-session -t "$SERVER" 2>/dev/null; then
+    [[ "${DEBUG:-0}" == "1" ]] && echo "DEBUG: Starting tmesh session" 1>&2
+
+    # Start tmesh server session
+    mosh "$SERVER" -- sh -c "nix run nixpkgs#tmux -- -f <(echo -n \$'$TMESH_DEFAULT_CONFIG') -L ${TMESH_SOCKET}-server new-session -s default -d \"$CMD\"" >/dev/null 2>&1
+
+    # Start tmux client session
+    tmux \
+      -f <(
+        cat <<EOF
+$TMESH_DEFAULT_CONFIG
+EOF
+      ) \
+      -L "$TMESH_SOCKET" \
       new-session \
-      -s "${SERVER}" \
+      -s "$SERVER" \
       -d \
-      mosh "${SERVER}" -- sh -c "${SCRIPT_DIR}/tmesh-server"
+      `# Attach to tmesh server session` \
+      mosh "$SERVER" -- sh -c "nix run nixpkgs#tmux -- -L ${TMESH_SOCKET}-server attach-session -t default" >/dev/null 2>&1
+  else
+    [[ "${DEBUG:-0}" == "1" ]] && echo "DEBUG: Session already exists" 1>&2
   fi
 }
 
 tryConnectTmux() {
-  if [[ -z "${TMUX}" ]]; then
-    tmux -L "${TMESH_SOCKET}" attach-session -t "${SERVER}"
+  if [[ -z "$TMUX" ]]; then
+    tmux -L "$TMESH_SOCKET" attach-session -t "$SERVER"
   else
-    tmux -L "${TMESH_SOCKET}" switch-client -t "${SERVER}"
+    tmux -L "$TMESH_SOCKET" switch-client -t "$SERVER"
   fi
 }
 
