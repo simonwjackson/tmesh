@@ -21,38 +21,44 @@ setw -g mode-keys vi
 set -g status off
 '
 
+function tryStartTmeshServerSession() {
+  mosh "$SERVER" -- sh -c "nix run nixpkgs#tmux -- -f <(echo -n \$'$TMESH_DEFAULT_CONFIG') -L ${TMESH_SOCKET}-server new-session -s default -d \"$CMD\"" >/dev/null 2>&1
+}
+
+function tryStartTmeshClientSession() {
+  tmux \
+    -f <(
+      cat <<EOF
+$TMESH_DEFAULT_CONFIG
+EOF
+    ) \
+    -L "$TMESH_SOCKET" \
+    new-session \
+    -s "$SERVER" \
+    -d \
+    mosh "$SERVER" -- sh -c "nix run nixpkgs#tmux -- -L ${TMESH_SOCKET}-server attach-session -t default" >/dev/null 2>&1
+}
+
 tryStartTmesh() {
   # Check if tmesh server session exists
   if ! tmux -L "$TMESH_SOCKET" has-session -t "$SERVER" 2>/dev/null; then
     [[ "${DEBUG:-0}" == "1" ]] && echo "DEBUG: Starting tmesh session" 1>&2
 
-    # Start tmesh server session
-    mosh "$SERVER" -- sh -c "nix run nixpkgs#tmux -- -f <(echo -n \$'$TMESH_DEFAULT_CONFIG') -L ${TMESH_SOCKET}-server new-session -s default -d \"$CMD\"" >/dev/null 2>&1
+    tryStartTmeshServerSession
+    tryStartTmeshClientSession
 
-    # Start tmux client session
-    tmux \
-      -f <(
-        cat <<EOF
-$TMESH_DEFAULT_CONFIG
-EOF
-      ) \
-      -L "$TMESH_SOCKET" \
-      new-session \
-      -s "$SERVER" \
-      -d \
-      `# Attach to tmesh server session` \
-      mosh "$SERVER" -- sh -c "nix run nixpkgs#tmux -- -L ${TMESH_SOCKET}-server attach-session -t default" >/dev/null 2>&1
   else
     [[ "${DEBUG:-0}" == "1" ]] && echo "DEBUG: Session already exists" 1>&2
   fi
 }
 
 tryConnectTmux() {
-  if [[ -z "$TMUX" ]]; then
-    tmux -L "$TMESH_SOCKET" attach-session -t "$SERVER"
-  else
-    tmux -L "$TMESH_SOCKET" switch-client -t "$SERVER"
-  fi
+  tmux -L "$TMESH_SOCKET" attach-session -d -t "$SERVER"
+  # if [[ -z "$TMUX" ]]; then
+  #   tmux -L "$TMESH_SOCKET" attach-session -t "$SERVER"
+  # else
+  #   tmux -L "$TMESH_SOCKET" switch-client -t "$SERVER"
+  # fi
 }
 
 main() {
