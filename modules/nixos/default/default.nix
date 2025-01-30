@@ -10,8 +10,6 @@
 
   package = inputs.self.packages.${system}.${pname};
   cfg = config.programs.${pname};
-  jsonConfig = builtins.toJSON cfg.settings;
-  jsonConfigFile = pkgs.writeText "config.json" jsonConfig;
 in {
   options.programs.${pname} = {
     enable = lib.mkEnableOption "${pname}";
@@ -42,8 +40,6 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    environment.etc."${pname}/config.json".source = jsonConfigFile;
-
     environment.etc."${pname}/tmesh-server.tmux.conf" = {
       text = cfg.tmeshServerTmuxConfig;
       mode = "0644";
@@ -55,10 +51,7 @@ in {
     };
 
     environment.systemPackages = [
-      (pkgs.writeScriptBin "${pname}" ''
-        #!${pkgs.stdenv.shell}
-        exec ${pkgs.lib.meta.getExe cfg.package} --config ${jsonConfigFile} "$@"
-      '')
+      (lib.meta.getExe cfg.package)
     ];
   };
 }

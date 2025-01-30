@@ -1,17 +1,52 @@
 #!/usr/bin/env bash
 
+# setup debug logging
+# set -x
+
 TMUX="${TMUX:-}"
 TERM="${TERM:-}"
 TMESH_SOCKET="${TMESH_SOCKET:-tmesh}"
 SERVER="${SERVER:=$(hostname)}"
-CMD='nvim -c \"autocmd TermClose * if !v:event.status | quit | endif\" +terminal'
+CMD='nvim --cmd \"let g:auto_session_enabled = v:false\" --cmd \"autocmd TermClose * if !v:event.status | quit | endif\" --cmd \"autocmd VimEnter * set signcolumn=no | startinsert\" +terminal'
 TMESH_DEFAULT_CONFIG='
+# INFO: https://github.com/tmux/tmux/wiki/Clipboard#terminal-support---tmux-inside-tmux
+set -s set-clipboard on
+
+# allow passthrough of escape sequences
+set -g allow-passthrough on
+set -g status off
+
+# Switch to another session if last window closed
+set-option -g detach-on-destroy off
+
+# Auto resize to the smallest screen connected
+set-option -g window-size smallest
+
+# Disable right click menu
+unbind-key -T root MouseDown3Pane
+
+# Respond to focus events
+set-option -g focus-events on
+
+# address vim mode switching delay (http://superuser.com/a/252717/65504)
+set-option -s escape-time 0
+
+# silent
+set-option -g visual-activity off
+set-option -g visual-bell off
+set-option -g visual-silence off
+set-option -g bell-action none
+
+# Ignore window notifications
+set-window-option -g monitor-activity off
+
 # Server options
-set -as terminal-features ',tmux-256color:clipboard'
 set -g default-terminal "tmux-256color"
+set -sa terminal-features ',xterm-256color:RGB'
+
+# Enable 24-bit true color support
+set -ga terminal-overrides ",*256col*:Tc"
 set -g history-limit 50000
-set -g status-interval 5
-set -g focus-events on
 
 # Window options  
 setw -g aggressive-resize on
@@ -21,8 +56,17 @@ setw -g mode-keys vi
 set -g status off
 '
 
+TMESH_SERVER_DEFAULT_CONFIG="
+${TMESH_DEFAULT_CONFIG}
+
+set -g prefix C-a
+unbind-key C-b
+bind-key C-a send-prefix
+"
+
 function tryStartTmeshServerSession() {
-  mosh "$SERVER" -- sh -c "nix run nixpkgs#tmux -- -f <(echo -n \$'$TMESH_DEFAULT_CONFIG') -L ${TMESH_SOCKET}-server new-session -s default -d \"$CMD\"" >/dev/null 2>&1
+  # TODO: use local tmux if available
+  mosh "$SERVER" -- sh -c "nix run nixpkgs#tmux  -- -f <(echo -n \$'$TMESH_SERVER_DEFAULT_CONFIG') -L ${TMESH_SOCKET}-server new-session -s default -d \"$CMD\"" >/dev/null 2>&1
 }
 
 function tryStartTmeshClientSession() {
@@ -32,7 +76,7 @@ function tryStartTmeshClientSession() {
 $TMESH_DEFAULT_CONFIG
 EOF
     ) \
-    -L "$TMESH_SOCKET" \
+    -L "${TMESH_SOCKET}-client" \
     new-session \
     -s "$SERVER" \
     -d \
@@ -40,8 +84,7 @@ EOF
 }
 
 tryStartTmesh() {
-  # Check if tmesh server session exists
-  if ! tmux -L "$TMESH_SOCKET" has-session -t "$SERVER" 2>/dev/null; then
+  if ! tmux -L "${TMESH_SOCKET}-client" has-session -t "$SERVER" 2>/dev/null; then
     [[ "${DEBUG:-0}" == "1" ]] && echo "DEBUG: Starting tmesh session" 1>&2
 
     tryStartTmeshServerSession
@@ -53,12 +96,14 @@ tryStartTmesh() {
 }
 
 tryConnectTmux() {
-  tmux -L "$TMESH_SOCKET" attach-session -d -t "$SERVER"
-  # if [[ -z "$TMUX" ]]; then
-  #   tmux -L "$TMESH_SOCKET" attach-session -t "$SERVER"
-  # else
-  #   tmux -L "$TMESH_SOCKET" switch-client -t "$SERVER"
-  # fi
+  # TODO: test this command.
+  # tmux -L "${TMESH_SOCKET}-client" attach-session -d -t "$SERVER"
+
+  if [[ -z "$TMUX" ]]; then
+    tmux -L "${TMESH_SOCKET}-client" attach-session -t "$SERVER"
+  else
+    tmux -L "${TMESH_SOCKET}-client" switch-client -t "$SERVER"
+  fi
 }
 
 main() {
