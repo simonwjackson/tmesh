@@ -51,7 +51,7 @@ in {
     };
 
     environment.systemPackages = [
-      (lib.meta.getExe cfg.package)
+      cfg.package
     ];
   };
 }
