@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
 
-# setup debug logging
-# set -x
-
 TMUX="${TMUX:-}"
 TERM="${TERM:-}"
 TMESH_SOCKET="${TMESH_SOCKET:-tmesh}"
@@ -85,13 +82,8 @@ EOF
 
 tryStartTmesh() {
   if ! tmux -L "${TMESH_SOCKET}-client" has-session -t "$SERVER" 2>/dev/null; then
-    [[ "${DEBUG:-0}" == "1" ]] && echo "DEBUG: Starting tmesh session" 1>&2
-
     tryStartTmeshServerSession
     tryStartTmeshClientSession
-
-  else
-    [[ "${DEBUG:-0}" == "1" ]] && echo "DEBUG: Session already exists" 1>&2
   fi
 }
 
