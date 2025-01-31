@@ -35,10 +35,8 @@ function M.select_session()
 	for _, path in ipairs(M.config.paths) do
 		local path_projects = Utils.git.find_projects(path)
 		for _, project in ipairs(path_projects) do
-			-- Use only the folder name
-			local folder_name = get_folder_name(project.path)
 			table.insert(projects, {
-				name = folder_name,
+				name = project.name, -- Use project.name directly instead of folder_name
 				path = project.path,
 			})
 		end
@@ -92,7 +90,7 @@ function M.setup(opts)
 
 	M.config = vim.tbl_deep_extend("force", M.config, opts)
 
-	vim.api.nvim_create_user_command("TmuxSelect", function()
+	vim.api.nvim_create_user_command("TmuxSessionSwitch", function()
 		M.select_session()
 	end, {})
 end
