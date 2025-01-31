@@ -23,6 +23,11 @@ function M.switch_or_create_session(session_name, project_path)
 end
 
 function M.select_session()
+	if not Utils.tmux.is_running() then
+		vim.notify("Not in a tmux session", vim.log.levels.ERROR)
+		return
+	end
+
 	local active_sessions = Utils.tmux.list_sessions()
 	local projects = {}
 
@@ -90,9 +95,7 @@ function M.setup(opts)
 
 	M.config = vim.tbl_deep_extend("force", M.config, opts)
 
-	vim.api.nvim_create_user_command("TmuxSessionSwitch", function()
-		M.select_session()
-	end, {})
+	vim.api.nvim_create_user_command("TmuxSessionSwitch", M.select_session, {})
 end
 
 return M
