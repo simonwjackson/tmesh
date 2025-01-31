@@ -26,11 +26,21 @@ function M.select_session()
 	local active_sessions = Utils.tmux.list_sessions()
 	local projects = {}
 
+	-- Helper function to get the last part of a path
+	local function get_folder_name(path)
+		return path:match("([^/]+)$")
+	end
+
 	-- Gather projects from all paths
 	for _, path in ipairs(M.config.paths) do
 		local path_projects = Utils.git.find_projects(path)
 		for _, project in ipairs(path_projects) do
-			table.insert(projects, project)
+			-- Use only the folder name
+			local folder_name = get_folder_name(project.path)
+			table.insert(projects, {
+				name = folder_name,
+				path = project.path,
+			})
 		end
 	end
 
