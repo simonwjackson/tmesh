@@ -1,4 +1,6 @@
 {pkgs, ...}: let
+  server-select = pkgs.writeShellScriptBin "server-select.sh" (builtins.readFile ./bin/server-select.sh);
+
   runtimeInputs = with pkgs; [
     bash
     coreutils
@@ -12,6 +14,7 @@
     nettools
     tmux
     yq-go
+    server-select
   ];
 in
   pkgs.writeShellApplication {

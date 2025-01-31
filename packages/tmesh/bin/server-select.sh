@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
-TMESH_ALL_SERVERS="$(yq -e -oy '.hosts | .[]' "${TMESH_CONFIG}" 2>/dev/null)"
+TMESH_ALL_SERVERS=$(
+  cut -d' ' -f1 /etc/ssh/ssh_known_hosts | cut -d',' -f1 | sort -u
+)
 
 server_selection=$(
   echo -e "$TMESH_ALL_SERVERS" |
@@ -9,9 +11,9 @@ server_selection=$(
       --bind 'ctrl-c:abort'
 )
 
-[ -z "$server_selection" ] && {
+[ "$server_selection" = "" ] && {
   echo "Server list empty"
   exit 1
 }
 
-SERVER="${server_selection}" tmesh
+SERVER="$server_selection" tmesh
