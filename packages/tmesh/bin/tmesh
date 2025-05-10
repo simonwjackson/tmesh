@@ -3,8 +3,8 @@
 TMUX="${TMUX:-}"
 TERM="${TERM:-}"
 TMESH_SOCKET="${TMESH_SOCKET:-tmesh}"
-SERVER="${SERVER:=$(hostname)}"
-CMD='nvim --cmd \"let g:auto_session_enabled = v:false\" --cmd \"autocmd TermClose * if !v:event.status | quit | endif\" --cmd \"autocmd VimEnter * set signcolumn=no | startinsert\" +terminal'
+SERVER="${TMESH_SERVER:=$(hostname)}"
+CMD="${TMESH_CMD:-${SHELL:-/bin/sh}}"
 TMESH_BASE_CONFIG='
 # INFO: https://github.com/tmux/tmux/wiki/Clipboard#terminal-support---tmux-inside-tmux
 set -s set-clipboard on
@@ -15,9 +15,6 @@ set -g status off
 
 # Switch to another session if last window closed
 set-option -g detach-on-destroy off
-
-# Auto resize to the latest window
-set-option -g window-size latest
 
 # Disable right click menu
 unbind-key -T root MouseDown3Pane
@@ -36,6 +33,8 @@ set-option -g bell-action none
 
 # Ignore window notifications
 set-window-option -g monitor-activity off
+# Auto resize to the latest window
+set-option -g window-size latest
 
 # Server options
 set -g default-terminal "tmux-256color"
@@ -71,7 +70,9 @@ bind-key C-a send-prefix
 
 function tryStartTmeshServerSession() {
   # TODO: use local tmux if available
-  mosh "$SERVER" -- sh -c "nix run nixpkgs#tmux  -- -f <(echo -n \$'$TMESH_SERVER_CONFIG') -L ${TMESH_SOCKET}-server new-session -s default -d \"$CMD\"" >/dev/null 2>&1
+  local escaped_cmd
+  escaped_cmd=$(printf '%q' "$CMD")
+  mosh "$SERVER" -- bash -c "nix run nixpkgs#tmux  -- -f <(echo -n \$'$TMESH_SERVER_CONFIG') -L ${TMESH_SOCKET}-server new-session -s default -d $escaped_cmd" >/dev/null 2>&1
 }
 
 function tryStartTmeshClientSession() {
