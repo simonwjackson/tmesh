@@ -72,11 +72,31 @@ function tryStartTmeshServerSession() {
   # TODO: use local tmux if available
   local escaped_cmd
   escaped_cmd=$(printf '%q' "$CMD")
-  mosh "$SERVER" -- bash -c "nix run nixpkgs#tmux  -- -f <(echo -n \$'$TMESH_SERVER_CONFIG') -L ${TMESH_SOCKET}-server new-session -s default -d $escaped_cmd" >/dev/null 2>&1
+  
+  # Generate session name from parent directory (cleaned of special chars)
+  local session_name
+  session_name=$(basename "$(dirname "$PWD")" | sed 's/[^a-zA-Z0-9_-]/-/g')
+  
+  # Find main or master directory for working directory and window name
+  local work_dir window_name
+  work_dir=$(find . -maxdepth 1 -type d \( -name main -o -name master \) | head -1)
+  window_name=${work_dir#./}
+  
+  # Use current directory if no main/master found
+  if [[ -z "$work_dir" ]]; then
+    work_dir="."
+    window_name="default"
+  fi
+  
+  mosh "$SERVER" -- bash -c "nix run nixpkgs#tmux  -- -f <(echo -n \$'$TMESH_SERVER_CONFIG') -L ${TMESH_SOCKET}-server new-session -s '$session_name' -c '$work_dir' -n '$window_name' -d $escaped_cmd" >/dev/null 2>&1
 }
 
 function tryStartTmeshClientSession() {
-  tmux \
+  # Generate session name from parent directory (cleaned of special chars)
+  local session_name
+  session_name=$(basename "$(dirname "$PWD")" | sed 's/[^a-zA-Z0-9_-]/-/g')
+  
+  nix run nixpkgs#tmux -- \
     -f <(
       cat <<EOF
 $TMESH_CLIENT_CONFIG
@@ -86,11 +106,15 @@ EOF
     new-session \
     -s "$SERVER" \
     -d \
-    mosh "$SERVER" -- sh -c "nix run nixpkgs#tmux -- -L ${TMESH_SOCKET}-server attach-session -t default" >/dev/null 2>&1
+    mosh "$SERVER" -- sh -c "nix run nixpkgs#tmux -- -L ${TMESH_SOCKET}-server attach-session -t '$session_name'" >/dev/null 2>&1
 }
 
 tryStartTmesh() {
-  if ! tmux -L "${TMESH_SOCKET}-client" has-session -t "$SERVER" 2>/dev/null; then
+  # Generate session name from parent directory (cleaned of special chars)
+  local session_name
+  session_name=$(basename "$(dirname "$PWD")" | sed 's/[^a-zA-Z0-9_-]/-/g')
+  
+  if ! nix run nixpkgs#tmux -- -L "${TMESH_SOCKET}-client" has-session -t "$SERVER" 2>/dev/null; then
     tryStartTmeshServerSession
     tryStartTmeshClientSession
   fi
@@ -98,12 +122,12 @@ tryStartTmesh() {
 
 tryConnectTmux() {
   # TODO: test this command.
-  # tmux -L "${TMESH_SOCKET}-client" attach-session -d -t "$SERVER"
+  # nix run nixpkgs#tmux -- -L "${TMESH_SOCKET}-client" attach-session -d -t "$SERVER"
 
   if [[ -z "$TMUX" ]]; then
-    tmux -L "${TMESH_SOCKET}-client" attach-session -t "$SERVER"
+    nix run nixpkgs#tmux -- -L "${TMESH_SOCKET}-client" attach-session -t "$SERVER"
   else
-    tmux -L "${TMESH_SOCKET}-client" switch-client -t "$SERVER"
+    nix run nixpkgs#tmux -- -L "${TMESH_SOCKET}-client" switch-client -t "$SERVER"
   fi
 }
 
