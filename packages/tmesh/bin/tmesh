@@ -52,6 +52,17 @@ setw -g mode-keys vi
 set -g status off
 '
 
+function isLocalhost() {
+  local server="$1"
+  local current_hostname
+  current_hostname=$(hostname)
+  
+  # Check various localhost representations
+  [[ "$server" == "localhost" ]] || \
+  [[ "$server" == "127.0.0.1" ]] || \
+  [[ "$server" == "$current_hostname" ]]
+}
+
 TMESH_CLIENT_CONFIG="
 ${TMESH_BASE_CONFIG}
 
@@ -88,7 +99,13 @@ function tryStartTmeshServerSession() {
     window_name="default"
   fi
   
-  mosh "$SERVER" -- bash -c "nix run nixpkgs#tmux  -- -f <(echo -n \$'$TMESH_SERVER_CONFIG') -L ${TMESH_SOCKET}-server new-session -s '$session_name' -c '$work_dir' -n '$window_name' -d $escaped_cmd" >/dev/null 2>&1
+  if isLocalhost "$SERVER"; then
+    # Use SSH for localhost connections
+    ssh "$SERVER" -- bash -c "nix run nixpkgs#tmux  -- -f <(echo -n \$'$TMESH_SERVER_CONFIG') -L ${TMESH_SOCKET}-server new-session -s '$session_name' -c '$work_dir' -n '$window_name' -d $escaped_cmd" >/dev/null 2>&1
+  else
+    # Use mosh for remote connections
+    mosh "$SERVER" -- bash -c "nix run nixpkgs#tmux  -- -f <(echo -n \$'$TMESH_SERVER_CONFIG') -L ${TMESH_SOCKET}-server new-session -s '$session_name' -c '$work_dir' -n '$window_name' -d $escaped_cmd" >/dev/null 2>&1
+  fi
 }
 
 function tryStartTmeshClientSession() {
@@ -96,17 +113,33 @@ function tryStartTmeshClientSession() {
   local session_name
   session_name=$(basename "$(dirname "$PWD")" | sed 's/[^a-zA-Z0-9_-]/-/g')
   
-  nix run nixpkgs#tmux -- \
-    -f <(
-      cat <<EOF
+  if isLocalhost "$SERVER"; then
+    # Use SSH for localhost connections
+    nix run nixpkgs#tmux -- \
+      -f <(
+        cat <<EOF
 $TMESH_CLIENT_CONFIG
 EOF
-    ) \
-    -L "${TMESH_SOCKET}-client" \
-    new-session \
-    -s "$SERVER" \
-    -d \
-    mosh "$SERVER" -- sh -c "nix run nixpkgs#tmux -- -L ${TMESH_SOCKET}-server attach-session -t '$session_name'" >/dev/null 2>&1
+      ) \
+      -L "${TMESH_SOCKET}-client" \
+      new-session \
+      -s "$SERVER" \
+      -d \
+      ssh "$SERVER" -- sh -c "nix run nixpkgs#tmux -- -L ${TMESH_SOCKET}-server attach-session -t '$session_name'" >/dev/null 2>&1
+  else
+    # Use mosh for remote connections
+    nix run nixpkgs#tmux -- \
+      -f <(
+        cat <<EOF
+$TMESH_CLIENT_CONFIG
+EOF
+      ) \
+      -L "${TMESH_SOCKET}-client" \
+      new-session \
+      -s "$SERVER" \
+      -d \
+      mosh "$SERVER" -- sh -c "nix run nixpkgs#tmux -- -L ${TMESH_SOCKET}-server attach-session -t '$session_name'" >/dev/null 2>&1
+  fi
 }
 
 tryStartTmesh() {

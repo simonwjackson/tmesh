@@ -12,6 +12,7 @@
     jq
     mosh
     nettools
+    openssh
     tmux
     yq-go
     server-select
