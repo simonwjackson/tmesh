@@ -5,6 +5,17 @@ TERM="${TERM:-}"
 TMESH_SOCKET="${TMESH_SOCKET:-tmesh}"
 SERVER="${TMESH_SERVER:=$(hostname)}"
 CMD="${TMESH_CMD:-${SHELL:-/bin/sh}}"
+TMESH_DEBUG="${TMESH_DEBUG:-}"
+NIX_BIN="${NIX_BIN:-$(command -v nix || echo /run/current-system/sw/bin/nix)}"
+
+# Helper function to conditionally suppress output
+suppress_output() {
+  if [[ -n "$TMESH_DEBUG" ]]; then
+    "$@"
+  else
+    "$@" >/dev/null 2>&1
+  fi
+}
 TMESH_BASE_CONFIG='
 # INFO: https://github.com/tmux/tmux/wiki/Clipboard#terminal-support---tmux-inside-tmux
 set -s set-clipboard on
@@ -100,11 +111,31 @@ function tryStartTmeshServerSession() {
   fi
   
   if isLocalhost "$SERVER"; then
-    # Use SSH for localhost connections
-    ssh "$SERVER" -- bash -c "nix run nixpkgs#tmux  -- -f <(echo -n \$'$TMESH_SERVER_CONFIG') -L ${TMESH_SOCKET}-server new-session -s '$session_name' -c '$work_dir' -n '$window_name' -d $escaped_cmd" >/dev/null 2>&1
+    # Use SSH for localhost connections - create temp config file
+    if ! suppress_output ssh "$SERVER" -- bash -c "
+      tmpfile=\$(mktemp)
+      cat > \"\$tmpfile\" << 'EOF'
+$TMESH_SERVER_CONFIG
+EOF
+      \"$NIX_BIN\" run nixpkgs#tmux -- -f \"\$tmpfile\" -L ${TMESH_SOCKET}-server new-session -s '$session_name' -c '$work_dir' -n '$window_name' -d $escaped_cmd
+      rm \"\$tmpfile\"
+    "; then
+      echo "Error: Failed to start tmesh server session on localhost ($SERVER)" >&2
+      return 1
+    fi
   else
-    # Use mosh for remote connections
-    mosh "$SERVER" -- bash -c "nix run nixpkgs#tmux  -- -f <(echo -n \$'$TMESH_SERVER_CONFIG') -L ${TMESH_SOCKET}-server new-session -s '$session_name' -c '$work_dir' -n '$window_name' -d $escaped_cmd" >/dev/null 2>&1
+    # Use mosh for remote connections - create temp config file
+    if ! suppress_output mosh "$SERVER" -- bash -c "
+      tmpfile=\$(mktemp)
+      cat > \"\$tmpfile\" << 'EOF'
+$TMESH_SERVER_CONFIG
+EOF
+      \"$NIX_BIN\" run nixpkgs#tmux -- -f \"\$tmpfile\" -L ${TMESH_SOCKET}-server new-session -s '$session_name' -c '$work_dir' -n '$window_name' -d $escaped_cmd
+      rm \"\$tmpfile\"
+    "; then
+      echo "Error: Failed to start tmesh server session on remote host ($SERVER)" >&2
+      return 1
+    fi
   fi
 }
 
@@ -113,33 +144,43 @@ function tryStartTmeshClientSession() {
   local session_name
   session_name=$(basename "$(dirname "$PWD")" | sed 's/[^a-zA-Z0-9_-]/-/g')
   
+  # Create temp config file for client
+  local tmpfile
+  tmpfile=$(mktemp)
+  cat > "$tmpfile" << EOF
+$TMESH_CLIENT_CONFIG
+EOF
+  
   if isLocalhost "$SERVER"; then
     # Use SSH for localhost connections
-    nix run nixpkgs#tmux -- \
-      -f <(
-        cat <<EOF
-$TMESH_CLIENT_CONFIG
-EOF
-      ) \
+    if ! suppress_output "$NIX_BIN" run nixpkgs#tmux -- \
+      -f "$tmpfile" \
       -L "${TMESH_SOCKET}-client" \
       new-session \
       -s "$SERVER" \
       -d \
-      ssh "$SERVER" -- sh -c "nix run nixpkgs#tmux -- -L ${TMESH_SOCKET}-server attach-session -t '$session_name'" >/dev/null 2>&1
+      ssh "$SERVER" -t "\"$NIX_BIN\" run nixpkgs#tmux -- -L ${TMESH_SOCKET}-server attach-session -t '$session_name'"; then
+      echo "Error: Failed to start tmesh client session for localhost ($SERVER)" >&2
+      rm "$tmpfile"
+      return 1
+    fi
   else
     # Use mosh for remote connections
-    nix run nixpkgs#tmux -- \
-      -f <(
-        cat <<EOF
-$TMESH_CLIENT_CONFIG
-EOF
-      ) \
+    if ! suppress_output "$NIX_BIN" run nixpkgs#tmux -- \
+      -f "$tmpfile" \
       -L "${TMESH_SOCKET}-client" \
       new-session \
       -s "$SERVER" \
       -d \
-      mosh "$SERVER" -- sh -c "nix run nixpkgs#tmux -- -L ${TMESH_SOCKET}-server attach-session -t '$session_name'" >/dev/null 2>&1
+      mosh "$SERVER" -- "\"$NIX_BIN\" run nixpkgs#tmux -- -L ${TMESH_SOCKET}-server attach-session -t '$session_name'"; then
+      echo "Error: Failed to start tmesh client session for remote host ($SERVER)" >&2
+      rm "$tmpfile"
+      return 1
+    fi
   fi
+  
+  # Clean up temp file
+  rm "$tmpfile"
 }
 
 tryStartTmesh() {
@@ -147,26 +188,46 @@ tryStartTmesh() {
   local session_name
   session_name=$(basename "$(dirname "$PWD")" | sed 's/[^a-zA-Z0-9_-]/-/g')
   
-  if ! nix run nixpkgs#tmux -- -L "${TMESH_SOCKET}-client" has-session -t "$SERVER" 2>/dev/null; then
-    tryStartTmeshServerSession
-    tryStartTmeshClientSession
+  if ! "$NIX_BIN" run nixpkgs#tmux -- -L "${TMESH_SOCKET}-client" has-session -t "$SERVER" 2>/dev/null; then
+    if ! tryStartTmeshServerSession; then
+      echo "Error: Failed to start tmesh server session" >&2
+      return 1
+    fi
+    
+    if ! tryStartTmeshClientSession; then
+      echo "Error: Failed to start tmesh client session" >&2
+      return 1
+    fi
   fi
 }
 
 tryConnectTmux() {
   # TODO: test this command.
-  # nix run nixpkgs#tmux -- -L "${TMESH_SOCKET}-client" attach-session -d -t "$SERVER"
+  # "$NIX_BIN" run nixpkgs#tmux -- -L "${TMESH_SOCKET}-client" attach-session -d -t "$SERVER"
 
   if [[ -z "$TMUX" ]]; then
-    nix run nixpkgs#tmux -- -L "${TMESH_SOCKET}-client" attach-session -t "$SERVER"
+    if ! "$NIX_BIN" run nixpkgs#tmux -- -L "${TMESH_SOCKET}-client" attach-session -t "$SERVER"; then
+      echo "Error: Failed to attach to tmux session for server ($SERVER)" >&2
+      return 1
+    fi
   else
-    nix run nixpkgs#tmux -- -L "${TMESH_SOCKET}-client" switch-client -t "$SERVER"
+    if ! "$NIX_BIN" run nixpkgs#tmux -- -L "${TMESH_SOCKET}-client" switch-client -t "$SERVER"; then
+      echo "Error: Failed to switch to tmux session for server ($SERVER)" >&2
+      return 1
+    fi
   fi
 }
 
 main() {
-  tryStartTmesh
-  tryConnectTmux
+  if ! tryStartTmesh; then
+    echo "Error: Failed to initialize tmesh" >&2
+    exit 1
+  fi
+  
+  if ! tryConnectTmux; then
+    echo "Error: Failed to connect to tmux session" >&2
+    exit 1
+  fi
 }
 
 main
