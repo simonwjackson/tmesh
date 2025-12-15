@@ -43,6 +43,7 @@
         --outfile=tmesh
       bun build src/server-select.ts --compile --outfile=server-select
       bun build src/app-select.ts --compile --outfile=app-select
+      bun build src/popup-shell.ts --compile --outfile=popup-shell
 
       runHook postBuild
     '';
@@ -56,6 +57,7 @@
       install -Dm755 tmesh $out/bin/tmesh
       install -Dm755 server-select $out/bin/server-select
       install -Dm755 app-select $out/bin/app-select
+      install -Dm755 popup-shell $out/bin/popup-shell
 
       # Wrap with runtime dependencies
       wrapProgram $out/bin/tmesh \
@@ -65,6 +67,9 @@
         --prefix PATH : ${pkgs.lib.makeBinPath runtimeDeps}
 
       wrapProgram $out/bin/app-select \
+        --prefix PATH : ${pkgs.lib.makeBinPath runtimeDeps}
+
+      wrapProgram $out/bin/popup-shell \
         --prefix PATH : ${pkgs.lib.makeBinPath runtimeDeps}
 
       runHook postInstall

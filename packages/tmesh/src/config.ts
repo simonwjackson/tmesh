@@ -53,17 +53,34 @@ set -g status off
 `;
 
 /**
+ * Find the directory where tmesh binaries are located
+ */
+function getBinDir(): string {
+  // process.execPath gives us the path to the current executable
+  // e.g., /nix/store/.../bin/tmesh -> /nix/store/.../bin
+  const execPath = process.execPath;
+  const lastSlash = execPath.lastIndexOf("/");
+  return lastSlash > 0 ? execPath.slice(0, lastSlash) : "/usr/bin";
+}
+
+/**
  * Client-specific tmux configuration
  */
-export const TMESH_CLIENT_CONFIG = `
+export function getTmeshClientConfig(): string {
+  const binDir = getBinDir();
+  return `
 ${TMESH_BASE_CONFIG}
 
-# Toggle terminal popup (close if open, open if closed) - opens shell window
-bind -n M-s display-popup -d '#{pane_current_path}' -w 80% -h 80% -E 'tmux -L tmesh-apps new-session -A -s apps -n shell "tmux set prefix None; tmux set prefix2 None; tmux bind -n M-s detach-client; tmux bind -n M-a detach-client; $SHELL"'
+# Toggle shell popup - M-s toggles popup with shell window
+bind -n M-s display-popup -d '#{pane_current_path}' -w 80% -h 80% -E ${binDir}/popup-shell
 
-# App selector popup - select/create window in apps session
-bind -n M-a display-popup -d '#{pane_current_path}' -w 80% -h 80% -E 'app=$(printf "shell\\nhtop\\nbtop\\nlazygit" | fzf) && [ -n "$app" ] && if tmux -L tmesh-apps has-session -t apps 2>/dev/null; then if tmux -L tmesh-apps list-windows -t apps -F "#{window_name}" | grep -qx "$app"; then tmux -L tmesh-apps select-window -t "apps:$app" && tmux -L tmesh-apps attach -t apps; else cmd="$app"; [ "$app" = "shell" ] && cmd="$SHELL"; tmux -L tmesh-apps new-window -t apps -n "$app" "$cmd" && tmux -L tmesh-apps attach -t apps; fi; else cmd="$app"; [ "$app" = "shell" ] && cmd="$SHELL"; tmux -L tmesh-apps new-session -s apps -n "$app" "tmux set prefix None; tmux set prefix2 None; tmux bind -n M-s detach-client; tmux bind -n M-a detach-client; $cmd"; fi'
+# Toggle app selector popup - M-a toggles popup with fzf selector  
+bind -n M-a display-popup -d '#{pane_current_path}' -w 20% -h 30% -E ${binDir}/app-select
 `;
+}
+
+// Keep for backwards compatibility
+export const TMESH_CLIENT_CONFIG = getTmeshClientConfig();
 
 /**
  * Server-specific tmux configuration
