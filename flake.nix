@@ -3,48 +3,158 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-
-    snowfall-lib = {
-      url = "github:snowfallorg/lib";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    snowfall-frost = {
-      url = "github:snowfallorg/frost";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
   };
 
-  outputs = inputs: let
-    lib = inputs.snowfall-lib.mkLib {
-      # You must pass in both your flake's inputs and the root directory of
-      # your flake.
-      inherit inputs;
-      src = ./.;
+  outputs = {
+    self,
+    nixpkgs,
+  }: let
+    supportedSystems = [
+      "x86_64-linux"
+      "aarch64-linux"
+      "x86_64-darwin"
+      "aarch64-darwin"
+    ];
+
+    forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
+
+    pkgsFor = system:
+      import nixpkgs {
+        inherit system;
+        config.allowUnfree = true;
+      };
+  in {
+    packages = forAllSystems (system: let
+      pkgs = pkgsFor system;
+    in {
+      tmesh = pkgs.callPackage ./packages/tmesh {};
+      default = self.packages.${system}.tmesh;
+    });
+
+    devShells = forAllSystems (system: let
+      pkgs = pkgsFor system;
+    in {
+      default = pkgs.callPackage ./shells/default {};
+    });
+
+    nixosModules = {
+      tmesh = {
+        config,
+        lib,
+        pkgs,
+        ...
+      }: let
+        inherit (pkgs.stdenv.hostPlatform) system;
+        pname = "tmesh";
+        package = self.packages.${system}.${pname};
+        cfg = config.programs.${pname};
+      in {
+        options.programs.${pname} = {
+          enable = lib.mkEnableOption "${pname}";
+
+          settings = lib.mkOption {
+            type = lib.types.attrs;
+            default = {};
+            description = "Configuration settings.";
+          };
+
+          package = lib.mkOption {
+            type = lib.types.package;
+            default = package;
+            description = "The package to use for ${pname}.";
+          };
+
+          tmeshServerTmuxConfig = lib.mkOption {
+            type = lib.types.lines;
+            default = "";
+            description = "Tmux configuration for tmesh server.";
+          };
+
+          tmeshTmuxConfig = lib.mkOption {
+            type = lib.types.lines;
+            default = "";
+            description = "Tmux configuration for tmesh.";
+          };
+        };
+
+        config = lib.mkIf cfg.enable {
+          environment.etc."${pname}/tmesh-server.tmux.conf" = {
+            text = cfg.tmeshServerTmuxConfig;
+            mode = "0644";
+          };
+
+          environment.etc."${pname}/tmesh.tmux.conf" = {
+            text = cfg.tmeshTmuxConfig;
+            mode = "0644";
+          };
+
+          environment.systemPackages = [
+            cfg.package
+          ];
+        };
+      };
+      default = self.nixosModules.tmesh;
     };
-  in
-    lib.mkFlake {
-      channels-config = {
-        allowUnfree = true;
-      };
 
-      snowfall = {
-        namespace = "tmesh";
+    homeManagerModules = {
+      tmesh = {
+        config,
+        lib,
+        pkgs,
+        ...
+      }: let
+        inherit (pkgs.stdenv.hostPlatform) system;
+        pname = "tmesh";
+        package = self.packages.${system}.${pname};
+        cfg = config.programs.${pname};
+      in {
+        options.programs.${pname} = {
+          enable = lib.mkEnableOption "${pname}";
 
-        meta = {
-          name = "tmesh";
-          title = "tmesh";
+          settings = lib.mkOption {
+            type = lib.types.attrs;
+            default = {};
+            description = "Configuration settings.";
+          };
+
+          package = lib.mkOption {
+            type = lib.types.package;
+            default = package;
+            description = "The package to use for ${pname}.";
+          };
+
+          tmeshServerTmuxConfig = lib.mkOption {
+            type = lib.types.lines;
+            default = "";
+            description = "Tmux configuration for tmesh server.";
+          };
+
+          tmeshTmuxConfig = lib.mkOption {
+            type = lib.types.lines;
+            default = "";
+            description = "Tmux configuration for tmesh.";
+          };
+        };
+
+        config = lib.mkIf cfg.enable {
+          xdg.configFile."${pname}/tmesh-server.tmux.conf" = {
+            text = cfg.tmeshServerTmuxConfig;
+          };
+
+          xdg.configFile."${pname}/tmesh.tmux.conf" = {
+            text = cfg.tmeshTmuxConfig;
+          };
+
+          home.packages = [
+            cfg.package
+          ];
         };
       };
-
-      alias = {
-        packages = {
-          default = "tmesh";
-        };
-
-        modules = {
-          default = "default";
-        };
-      };
+      default = self.homeManagerModules.tmesh;
     };
+
+    overlays.default = final: prev: {
+      tmesh = self.packages.${prev.stdenv.hostPlatform.system}.tmesh;
+    };
+  };
 }

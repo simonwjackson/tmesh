@@ -1,10 +1,6 @@
 { self }:
-{
-  config,
-  lib,
-  pkgs,
-  ...
-}: let
+{ config, lib, pkgs, ... }:
+let
   inherit (pkgs.stdenv.hostPlatform) system;
   pname = "tmesh";
 
@@ -14,16 +10,16 @@ in {
   options.programs.${pname} = {
     enable = lib.mkEnableOption "${pname}";
 
-    settings = lib.mkOption {
-      type = lib.types.attrs;
-      default = {};
-      description = "Configuration settings.";
-    };
-
     package = lib.mkOption {
       type = lib.types.package;
       default = package;
       description = "The package to use for ${pname}.";
+    };
+
+    settings = lib.mkOption {
+      type = lib.types.attrs;
+      default = {};
+      description = "Configuration settings.";
     };
 
     tmeshServerTmuxConfig = lib.mkOption {
@@ -40,18 +36,15 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    environment.etc."${pname}/tmesh-server.tmux.conf" = {
-      text = cfg.tmeshServerTmuxConfig;
-      mode = "0644";
-    };
+    home.packages = [ cfg.package ];
 
-    environment.etc."${pname}/tmesh.tmux.conf" = {
-      text = cfg.tmeshTmuxConfig;
-      mode = "0644";
-    };
-
-    environment.systemPackages = [
-      cfg.package
+    xdg.configFile = lib.mkMerge [
+      (lib.mkIf (cfg.tmeshServerTmuxConfig != "") {
+        "${pname}/tmesh-server.tmux.conf".text = cfg.tmeshServerTmuxConfig;
+      })
+      (lib.mkIf (cfg.tmeshTmuxConfig != "") {
+        "${pname}/tmesh.tmux.conf".text = cfg.tmeshTmuxConfig;
+      })
     ];
   };
 }
