@@ -5,6 +5,7 @@
 
 import {
   attachToSession,
+  getBinDir,
   hasSession,
   hasWindow,
   run,
@@ -55,7 +56,15 @@ async function selectApp(): Promise<App | null> {
   return APPS.find((a) => a.name === selection) ?? null;
 }
 
-async function main(): Promise<never> {
+/**
+ * Check if we're already inside the tmesh-apps session
+ */
+function isInsideAppsSession(): boolean {
+  const tmuxEnv = process.env["TMUX"] ?? "";
+  return tmuxEnv.includes(SOCKET);
+}
+
+async function main(): Promise<void> {
   const app = await selectApp();
   if (!app) {
     process.exit(0);
@@ -64,7 +73,7 @@ async function main(): Promise<never> {
   if (!hasSession()) {
     // Create new session with selected app as first window
     run(["tmux", "-L", SOCKET, "new-session", "-d", "-s", SESSION, "-n", app.name, app.cmd]);
-    setupSession();
+    setupSession(getBinDir());
   } else if (!hasWindow(app.name)) {
     // Create new window for this app
     run(["tmux", "-L", SOCKET, "new-window", "-t", SESSION, "-n", app.name, app.cmd]);
@@ -73,8 +82,12 @@ async function main(): Promise<never> {
   // Select the app window
   run(["tmux", "-L", SOCKET, "select-window", "-t", `${SESSION}:${app.name}`]);
 
-  // Attach to session (this exits the process)
-  attachToSession();
+  // Only attach if we're not already inside the session
+  if (!isInsideAppsSession()) {
+    attachToSession();
+  }
+
+  process.exit(0);
 }
 
 main();

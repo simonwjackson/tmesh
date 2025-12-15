@@ -5,6 +5,15 @@
 export const SOCKET = "tmesh-apps";
 export const SESSION = "apps";
 
+/**
+ * Get the directory where tmesh binaries are located
+ */
+export function getBinDir(): string {
+  const execPath = process.execPath;
+  const lastSlash = execPath.lastIndexOf("/");
+  return lastSlash > 0 ? execPath.slice(0, lastSlash) : "/usr/bin";
+}
+
 export function run(args: string[]): boolean {
   const result = Bun.spawnSync(args);
   return result.exitCode === 0;
@@ -23,12 +32,14 @@ export function hasWindow(name: string): boolean {
   return windows.includes(name);
 }
 
-export function setupSession(): void {
-  // Disable prefix keys and bind M-s/M-a to detach
+export function setupSession(binDir: string): void {
+  // Disable prefix keys
   run(["tmux", "-L", SOCKET, "set", "-g", "prefix", "None"]);
   run(["tmux", "-L", SOCKET, "set", "-g", "prefix2", "None"]);
+  // M-s closes the popup
   run(["tmux", "-L", SOCKET, "bind", "-n", "M-s", "detach-client"]);
-  run(["tmux", "-L", SOCKET, "bind", "-n", "M-a", "detach-client"]);
+  // M-a opens the app selector within the popup
+  run(["tmux", "-L", SOCKET, "bind", "-n", "M-a", "display-popup", "-w", "20%", "-h", "20%", "-E", `${binDir}/app-select`]);
 }
 
 export function attachToSession(): never {

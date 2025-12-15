@@ -7,6 +7,7 @@
 
 import {
   attachToSession,
+  getBinDir,
   hasSession,
   run,
   SESSION,
@@ -20,7 +21,7 @@ function main(): never {
   if (!hasSession()) {
     // Create new session with shell window as default
     run(["tmux", "-L", SOCKET, "new-session", "-d", "-s", SESSION, "-n", DEFAULT_WINDOW]);
-    setupSession();
+    setupSession(getBinDir());
   }
 
   // Just attach to session - don't change the window
