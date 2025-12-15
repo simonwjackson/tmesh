@@ -64,7 +64,7 @@ export function setupSession(binDir: string): void {
   // M-a opens the app selector within the popup (styled)
   run([
     "tmux", "-L", SOCKET, "bind", "-n", "M-a",
-    "display-popup", "-w", "25%", "-h", "30%", "-x", "C", "-y", "5",
+    "display-popup", "-w", "20%", "-h", "20%", "-x", "C", "-y", "5",
     "-b", "rounded", "-T", " Apps ",
     "-E", `${binDir}/app-select`
   ]);

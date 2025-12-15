@@ -60,10 +60,26 @@ async function selectApp(): Promise<App | null> {
 
 /**
  * Check if we're already inside the tmesh-apps session
+ * We check both TMUX env and TMUX_PANE to detect nested popups
  */
 function isInsideAppsSession(): boolean {
   const tmuxEnv = process.env["TMUX"] ?? "";
-  return tmuxEnv.includes(SOCKET);
+  // Check if TMUX points to our socket
+  if (tmuxEnv.includes(SOCKET)) {
+    return true;
+  }
+  // Also check if there's an active client attached to our session
+  // This handles the case of nested popups
+  const result = Bun.spawnSync([
+    "tmux", "-L", SOCKET, "list-clients", "-F", "#{client_name}"
+  ]);
+  if (result.exitCode === 0) {
+    const clients = new TextDecoder().decode(result.stdout).trim();
+    if (clients.length > 0) {
+      return true;
+    }
+  }
+  return false;
 }
 
 async function main(): Promise<void> {
@@ -84,10 +100,17 @@ async function main(): Promise<void> {
   // Select the app window
   run(["tmux", "-L", SOCKET, "select-window", "-t", `${SESSION}:${app.name}`]);
 
-  // Only attach if we're not already inside the session
-  if (!isInsideAppsSession()) {
-    attachToSession();
+  // If inside apps session (nested fzf), just exit - window is already selected
+  if (isInsideAppsSession()) {
+    process.exit(0);
   }
+
+  // From outer tmux: trigger a new large popup via run-shell, then exit
+  const binDir = getBinDir();
+  run([
+    "tmux", "-L", "tmesh-client", "run-shell", "-b",
+    `sleep 0.1 && tmux -L tmesh-client display-popup -w 80% -h 80% -b rounded -T ' Terminal ' -E ${binDir}/popup-shell`
+  ]);
 
   process.exit(0);
 }

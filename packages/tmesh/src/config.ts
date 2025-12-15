@@ -75,8 +75,8 @@ ${TMESH_BASE_CONFIG}
 # Centered, 80%, rounded border
 bind -n M-s display-popup -d '#{pane_current_path}' -w 80% -h 80% -b rounded -T ' Terminal ' -E ${binDir}/popup-shell
 
-# Toggle app selector popup - M-a toggles popup with fzf selector
-bind -n M-a display-popup -d '#{pane_current_path}' -w 80% -h 80% -b rounded -T ' Apps ' -E ${binDir}/app-select
+# Toggle app selector popup - M-a shows small fzf, app-select triggers large popup
+bind -n M-a display-popup -d '#{pane_current_path}' -w 20% -h 20% -b rounded -T ' Apps ' -E ${binDir}/app-select
 `;
 }
 
