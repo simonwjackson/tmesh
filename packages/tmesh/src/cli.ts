@@ -6,7 +6,10 @@ import { tryConnectTmux, tryStartTmesh } from "./session";
 import type { CliOptions } from "./types";
 import { logError } from "./utils";
 
-const VERSION = "0.1.0";
+// Version is set at build time via --define '__VERSION__="x.y.z"'
+// Defaults to "dev" for local/unbundled runs
+declare const __VERSION__: string | undefined;
+const VERSION = typeof __VERSION__ === "string" ? __VERSION__ : "dev";
 
 const HELP_TEXT = `
 tmesh - Effortlessly manage tmux sessions across multiple hosts

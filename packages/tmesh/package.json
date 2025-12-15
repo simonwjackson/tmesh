@@ -1,6 +1,6 @@
 {
   "name": "tmesh",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "description": "Effortlessly manage tmux sessions across multiple hosts",
   "type": "module",
   "main": "src/index.ts",

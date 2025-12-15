@@ -1,10 +1,10 @@
 {
   pkgs,
   lib ? pkgs.lib,
+  version ? "dev",
   ...
 }: let
   pname = "tmesh";
-  version = "0.1.0";
 
   # Runtime dependencies that need to be available in PATH
   runtimeDeps = with pkgs; [
@@ -37,8 +37,10 @@
     buildPhase = ''
       runHook preBuild
 
-      # Build standalone executables
-      bun build src/cli.ts --compile --outfile=tmesh
+      # Build standalone executables with version injected
+      bun build src/cli.ts --compile \
+        --define '__VERSION__="${version}"' \
+        --outfile=tmesh
       bun build src/server-select.ts --compile --outfile=server-select
 
       runHook postBuild

@@ -1,0 +1,165 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  BUN_VERSION: "1.1.38"
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - name: Generate CalVer version
+        id: version
+        run: |
+          # CalVer format: YYYY.MM.DD.RUN_NUMBER
+          DATE_PART=$(date +%Y.%-m.%-d)
+          VERSION="${DATE_PART}.${{ github.run_number }}"
+          TAG="v${VERSION}"
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "Generated version: ${VERSION}"
+
+  build:
+    needs: version
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - target: bun-linux-x64
+            artifact: x86_64-linux
+          - target: bun-linux-arm64
+            artifact: aarch64-linux
+          - target: bun-darwin-x64
+            artifact: x86_64-darwin
+          - target: bun-darwin-arm64
+            artifact: aarch64-darwin
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Build binaries
+        working-directory: packages/tmesh
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          mkdir -p dist
+
+          # Build tmesh with version injected
+          bun build src/cli.ts --compile --target=${{ matrix.target }} \
+            --define "__VERSION__=\"${VERSION}\"" \
+            --outfile=dist/tmesh-${{ matrix.artifact }}
+
+          # Build server-select
+          bun build src/server-select.ts --compile --target=${{ matrix.target }} \
+            --outfile=dist/server-select-${{ matrix.artifact }}
+
+          # Make executable
+          chmod +x dist/*
+
+          # Show what we built
+          ls -la dist/
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: binaries-${{ matrix.artifact }}
+          path: packages/tmesh/dist/*
+          if-no-files-found: error
+
+  release:
+    needs: [version, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          pattern: binaries-*
+          merge-multiple: true
+
+      - name: List artifacts
+        run: ls -la artifacts/
+
+      - name: Generate checksums
+        working-directory: artifacts
+        run: |
+          sha256sum * > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ needs.version.outputs.tag }}
+          tag_name: ${{ needs.version.outputs.tag }}
+          body: |
+            ## tmesh ${{ needs.version.outputs.version }}
+
+            Rolling release from `main` branch.
+
+            ### Installation
+
+            **Via Nix Flake (recommended):**
+            ```bash
+            nix run github:simonwjackson/tmesh
+            ```
+
+            **Via FlakeHub:**
+            ```bash
+            nix run "https://flakehub.com/f/simonwjackson/tmesh/*.tar.gz"
+            ```
+
+            **Manual download:**
+            Download the appropriate binary for your platform below and make it executable:
+            ```bash
+            chmod +x tmesh-*
+            ./tmesh-x86_64-linux --help
+            ```
+
+            ### Binaries
+
+            | Platform | Binary |
+            |----------|--------|
+            | Linux x86_64 | `tmesh-x86_64-linux` |
+            | Linux ARM64 | `tmesh-aarch64-linux` |
+            | macOS x86_64 | `tmesh-x86_64-darwin` |
+            | macOS ARM64 | `tmesh-aarch64-darwin` |
+
+            ### Checksums
+            See `SHA256SUMS` for file checksums.
+          files: |
+            artifacts/*
+          fail_on_unmatched_files: true
+          make_latest: true
+
+  flakehub:
+    needs: [version, release]
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: DeterminateSystems/nix-installer-action@main
+
+      - uses: DeterminateSystems/flakehub-push@main
+        with:
+          name: simonwjackson/tmesh
+          rolling: true
+          visibility: public
