@@ -75,7 +75,7 @@ ${TMESH_BASE_CONFIG}
 bind -n M-s display-popup -d '#{pane_current_path}' -w 80% -h 80% -E ${binDir}/popup-shell
 
 # Toggle app selector popup - M-a toggles popup with fzf selector  
-bind -n M-a display-popup -d '#{pane_current_path}' -w 20% -h 30% -E ${binDir}/app-select
+bind -n M-a display-popup -d '#{pane_current_path}' -w 20% -h 20% -E ${binDir}/app-select
 `;
 }
 

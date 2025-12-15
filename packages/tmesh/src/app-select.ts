@@ -27,14 +27,23 @@ const APPS: readonly App[] = [
 ];
 
 async function selectApp(): Promise<App | null> {
-  const fzfProcess = Bun.spawn(
-    ["fzf", "--bind", "esc:abort,alt-a:abort,alt-s:abort"],
-    {
-      stdin: "pipe",
-      stdout: "pipe",
-      stderr: "inherit",
-    }
-  );
+  const fzfArgs = [
+    "fzf",
+    "--layout=reverse",
+    "--no-info",
+    "--no-scrollbar",
+    "--pointer=▶",
+    "--prompt=",
+    "--select-1",
+    "--exit-0",
+    "--bind", "esc:abort,alt-a:abort,alt-s:abort",
+  ];
+
+  const fzfProcess = Bun.spawn(fzfArgs, {
+    stdin: "pipe",
+    stdout: "pipe",
+    stderr: "inherit",
+  });
 
   fzfProcess.stdin.write(APPS.map((a) => a.name).join("\n"));
   fzfProcess.stdin.end();
