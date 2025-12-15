@@ -40,13 +40,13 @@ export function setupSession(binDir: string): void {
   // Status bar configuration
   run(["tmux", "-L", SOCKET, "set", "-g", "status", "2"]);  // 2-line status bar for spacing
   run(["tmux", "-L", SOCKET, "set", "-g", "status-position", "top"]);
-  run(["tmux", "-L", SOCKET, "set", "-g", "status-style", "bg=#1a1b26,fg=#c0caf5"]);
+  run(["tmux", "-L", SOCKET, "set", "-g", "status-style", "bg=default,fg=default"]);
   run(["tmux", "-L", SOCKET, "set", "-g", "status-format[1]", ""]);  // Empty second line for spacing
   run(["tmux", "-L", SOCKET, "set", "-g", "status-justify", "centre"]);
   
   // Left side: hostname with icon
   run(["tmux", "-L", SOCKET, "set", "-g", "status-left", "  #H "]);
-  run(["tmux", "-L", SOCKET, "set", "-g", "status-left-style", "fg=#7aa2f7,bold"]);
+  run(["tmux", "-L", SOCKET, "set", "-g", "status-left-style", "bold"]);
   run(["tmux", "-L", SOCKET, "set", "-g", "status-left-length", "30"]);
   
   // Right side: empty for now
@@ -55,8 +55,8 @@ export function setupSession(binDir: string): void {
   // Window status (centered)
   run(["tmux", "-L", SOCKET, "set", "-g", "window-status-format", " #W "]);
   run(["tmux", "-L", SOCKET, "set", "-g", "window-status-current-format", " #W "]);
-  run(["tmux", "-L", SOCKET, "set", "-g", "window-status-style", "fg=#565f89"]);
-  run(["tmux", "-L", SOCKET, "set", "-g", "window-status-current-style", "fg=#7aa2f7,bold"]);
+  run(["tmux", "-L", SOCKET, "set", "-g", "window-status-style", "dim"]);
+  run(["tmux", "-L", SOCKET, "set", "-g", "window-status-current-style", "bold"]);
   run(["tmux", "-L", SOCKET, "set", "-g", "window-status-separator", "  "]);
   
   // M-s closes the popup
@@ -65,7 +65,7 @@ export function setupSession(binDir: string): void {
   run([
     "tmux", "-L", SOCKET, "bind", "-n", "M-a",
     "display-popup", "-w", "25%", "-h", "30%", "-x", "C", "-y", "5",
-    "-b", "rounded", "-S", "fg=#7aa2f7", "-s", "bg=#1a1b26", "-T", " Apps ",
+    "-b", "rounded", "-T", " Apps ",
     "-E", `${binDir}/app-select`
   ]);
 }

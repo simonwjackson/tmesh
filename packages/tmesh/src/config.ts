@@ -72,12 +72,11 @@ export function getTmeshClientConfig(): string {
 ${TMESH_BASE_CONFIG}
 
 # Toggle shell popup - M-s toggles popup with shell window
-# Centered, 80%, rounded border, subtle styling
-bind -n M-s display-popup -d '#{pane_current_path}' -w 80% -h 80% -b rounded -S 'fg=#565f89' -s 'bg=#1a1b26' -T ' Terminal ' -E ${binDir}/popup-shell
+# Centered, 80%, rounded border
+bind -n M-s display-popup -d '#{pane_current_path}' -w 80% -h 80% -b rounded -T ' Terminal ' -E ${binDir}/popup-shell
 
 # Toggle app selector popup - M-a toggles popup with fzf selector
-# Top-center, compact, rounded border, accent color
-bind -n M-a display-popup -d '#{pane_current_path}' -w 25% -h 30% -x C -y 5 -b rounded -S 'fg=#7aa2f7' -s 'bg=#1a1b26' -T ' Apps ' -E ${binDir}/app-select
+bind -n M-a display-popup -d '#{pane_current_path}' -w 80% -h 80% -b rounded -T ' Apps ' -E ${binDir}/app-select
 `;
 }
 
