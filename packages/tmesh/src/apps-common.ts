@@ -52,12 +52,12 @@ export function setupSession(binDir: string): void {
   // Right side: empty for now
   run(["tmux", "-L", SOCKET, "set", "-g", "status-right", ""]);
   
-  // Window status (centered)
+  // Window status (centered) with separators
   run(["tmux", "-L", SOCKET, "set", "-g", "window-status-format", " #W "]);
   run(["tmux", "-L", SOCKET, "set", "-g", "window-status-current-format", " #W "]);
   run(["tmux", "-L", SOCKET, "set", "-g", "window-status-style", "dim"]);
   run(["tmux", "-L", SOCKET, "set", "-g", "window-status-current-style", "bold"]);
-  run(["tmux", "-L", SOCKET, "set", "-g", "window-status-separator", "  "]);
+  run(["tmux", "-L", SOCKET, "set", "-g", "window-status-separator", " • "]);
   
   // M-s closes the popup
   run(["tmux", "-L", SOCKET, "bind", "-n", "M-s", "detach-client"]);
