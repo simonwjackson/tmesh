@@ -6,11 +6,12 @@
   "main": "src/index.ts",
   "bin": {
     "tmesh": "src/cli.ts",
-    "server-select": "src/server-select.ts"
+    "server-select": "src/server-select.ts",
+    "app-select": "src/app-select.ts"
   },
   "scripts": {
     "dev": "bun run src/cli.ts",
-    "build": "bun build src/cli.ts --compile --outfile=dist/tmesh && bun build src/server-select.ts --compile --outfile=dist/server-select",
+    "build": "bun build src/cli.ts --compile --outfile=dist/tmesh && bun build src/server-select.ts --compile --outfile=dist/server-select && bun build src/app-select.ts --compile --outfile=dist/app-select",
     "test": "bun test",
     "test:watch": "bun test --watch",
     "typecheck": "bun x tsc --noEmit"

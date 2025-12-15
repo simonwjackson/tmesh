@@ -58,8 +58,11 @@ set -g status off
 export const TMESH_CLIENT_CONFIG = `
 ${TMESH_BASE_CONFIG}
 
-# Toggle terminal popup (close if open, open if closed)
-bind -n M-s display-popup -d '#{pane_current_path}' -w 80% -h 80% -E 'tmux -L tmesh-apps new-session -A -s tmesh-apps "tmux set prefix None; tmux set prefix2 None; tmux bind -n M-s detach-client; $SHELL"'
+# Toggle terminal popup (close if open, open if closed) - opens shell window
+bind -n M-s display-popup -d '#{pane_current_path}' -w 80% -h 80% -E 'tmux -L tmesh-apps new-session -A -s apps -n shell "tmux set prefix None; tmux set prefix2 None; tmux bind -n M-s detach-client; tmux bind -n M-a detach-client; $SHELL"'
+
+# App selector popup - select/create window in apps session
+bind -n M-a display-popup -d '#{pane_current_path}' -w 80% -h 80% -E 'app=$(printf "shell\\nhtop\\nbtop\\nlazygit" | fzf) && [ -n "$app" ] && if tmux -L tmesh-apps has-session -t apps 2>/dev/null; then if tmux -L tmesh-apps list-windows -t apps -F "#{window_name}" | grep -qx "$app"; then tmux -L tmesh-apps select-window -t "apps:$app" && tmux -L tmesh-apps attach -t apps; else cmd="$app"; [ "$app" = "shell" ] && cmd="$SHELL"; tmux -L tmesh-apps new-window -t apps -n "$app" "$cmd" && tmux -L tmesh-apps attach -t apps; fi; else cmd="$app"; [ "$app" = "shell" ] && cmd="$SHELL"; tmux -L tmesh-apps new-session -s apps -n "$app" "tmux set prefix None; tmux set prefix2 None; tmux bind -n M-s detach-client; tmux bind -n M-a detach-client; $cmd"; fi'
 `;
 
 /**

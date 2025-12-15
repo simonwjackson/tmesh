@@ -42,6 +42,7 @@
         --define '__VERSION__="${version}"' \
         --outfile=tmesh
       bun build src/server-select.ts --compile --outfile=server-select
+      bun build src/app-select.ts --compile --outfile=app-select
 
       runHook postBuild
     '';
@@ -54,12 +55,16 @@
       # Install the compiled binaries
       install -Dm755 tmesh $out/bin/tmesh
       install -Dm755 server-select $out/bin/server-select
+      install -Dm755 app-select $out/bin/app-select
 
       # Wrap with runtime dependencies
       wrapProgram $out/bin/tmesh \
         --prefix PATH : ${pkgs.lib.makeBinPath runtimeDeps}
 
       wrapProgram $out/bin/server-select \
+        --prefix PATH : ${pkgs.lib.makeBinPath runtimeDeps}
+
+      wrapProgram $out/bin/app-select \
         --prefix PATH : ${pkgs.lib.makeBinPath runtimeDeps}
 
       runHook postInstall
