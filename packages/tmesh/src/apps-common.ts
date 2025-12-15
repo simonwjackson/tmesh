@@ -38,8 +38,13 @@ export function setupSession(binDir: string): void {
   run(["tmux", "-L", SOCKET, "set", "-g", "prefix2", "None"]);
   // M-s closes the popup
   run(["tmux", "-L", SOCKET, "bind", "-n", "M-s", "detach-client"]);
-  // M-a opens the app selector within the popup
-  run(["tmux", "-L", SOCKET, "bind", "-n", "M-a", "display-popup", "-w", "20%", "-h", "20%", "-E", `${binDir}/app-select`]);
+  // M-a opens the app selector within the popup (styled)
+  run([
+    "tmux", "-L", SOCKET, "bind", "-n", "M-a",
+    "display-popup", "-w", "25%", "-h", "30%", "-x", "C", "-y", "5",
+    "-b", "rounded", "-S", "fg=#7aa2f7", "-s", "bg=#1a1b26", "-T", " Apps ",
+    "-E", `${binDir}/app-select`
+  ]);
 }
 
 export function attachToSession(): never {

@@ -33,10 +33,13 @@ async function selectApp(): Promise<App | null> {
     "--layout=reverse",
     "--no-info",
     "--no-scrollbar",
+    "--no-separator",
     "--pointer=▶",
     "--prompt=",
+    "--margin=1,2",
     "--select-1",
     "--exit-0",
+    "--color=bg+:#283457,fg:#c0caf5,fg+:#c0caf5,hl:#7aa2f7,hl+:#7aa2f7,pointer:#7aa2f7,marker:#9ece6a,spinner:#9ece6a",
     "--bind", "esc:abort,alt-a:abort,alt-s:abort",
   ];
 
