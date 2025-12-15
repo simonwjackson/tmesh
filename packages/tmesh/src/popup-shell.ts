@@ -10,22 +10,24 @@ import {
   getBinDir,
   hasSession,
   run,
-  SESSION,
   setupSession,
-  SOCKET,
 } from "./apps-common";
+import { loadUserConfig } from "./user-config";
 
 const DEFAULT_WINDOW = "shell";
 
 function main(): never {
-  if (!hasSession()) {
+  const config = loadUserConfig();
+  const { socket, session } = config;
+  
+  if (!hasSession(socket, session)) {
     // Create new session with shell window as default
-    run(["tmux", "-L", SOCKET, "new-session", "-d", "-s", SESSION, "-n", DEFAULT_WINDOW]);
-    setupSession(getBinDir());
+    run(["tmux", "-L", socket, "new-session", "-d", "-s", session, "-n", DEFAULT_WINDOW]);
+    setupSession(getBinDir(), config);
   }
 
   // Just attach to session - don't change the window
-  attachToSession();
+  attachToSession(socket, session);
 }
 
 main();

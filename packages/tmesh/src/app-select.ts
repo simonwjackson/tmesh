@@ -4,74 +4,33 @@
  */
 
 import {
-  attachToSession,
   getBinDir,
   hasSession,
   hasWindow,
   run,
-  SESSION,
   setupSession,
-  SOCKET,
 } from "./apps-common";
-
-type App = {
-  readonly name: string;
-  readonly cmd: string;
-};
-
-// Predefined apps list - shell first since it's most common
-const APPS: readonly App[] = [
-  { name: "shell", cmd: process.env["SHELL"] ?? "/bin/sh" },
-  { name: "htop", cmd: "htop" },
-  { name: "btop", cmd: "btop" },
-  { name: "lazygit", cmd: "lazygit" },
-];
-
-async function selectApp(): Promise<App | null> {
-  const fzfArgs = [
-    "fzf",
-    "--layout=reverse",
-    "--no-info",
-    "--no-scrollbar",
-    "--no-separator",
-    "--pointer=▶",
-    "--prompt=",
-    "--margin=1,2",
-    "--select-1",
-    "--exit-0",
-    "--bind", "esc:abort,alt-a:abort,alt-s:abort",
-  ];
-
-  const fzfProcess = Bun.spawn(fzfArgs, {
-    stdin: "pipe",
-    stdout: "pipe",
-    stderr: "inherit",
-  });
-
-  fzfProcess.stdin.write(APPS.map((a) => a.name).join("\n"));
-  fzfProcess.stdin.end();
-
-  const exitCode = await fzfProcess.exited;
-  if (exitCode !== 0) return null;
-
-  const selection = (await new Response(fzfProcess.stdout).text()).trim();
-  return APPS.find((a) => a.name === selection) ?? null;
-}
+import { getFzfCommand } from "./fzf-config";
+import {
+  type AppConfig,
+  getAppsForDisplay,
+  loadUserConfig,
+} from "./user-config";
 
 /**
  * Check if we're already inside the tmesh-apps session
  * We check both TMUX env and TMUX_PANE to detect nested popups
  */
-function isInsideAppsSession(): boolean {
+function isInsideAppsSession(socket: string): boolean {
   const tmuxEnv = process.env["TMUX"] ?? "";
   // Check if TMUX points to our socket
-  if (tmuxEnv.includes(SOCKET)) {
+  if (tmuxEnv.includes(socket)) {
     return true;
   }
   // Also check if there's an active client attached to our session
   // This handles the case of nested popups
   const result = Bun.spawnSync([
-    "tmux", "-L", SOCKET, "list-clients", "-F", "#{client_name}"
+    "tmux", "-L", socket, "list-clients", "-F", "#{client_name}"
   ]);
   if (result.exitCode === 0) {
     const clients = new TextDecoder().decode(result.stdout).trim();
@@ -82,26 +41,50 @@ function isInsideAppsSession(): boolean {
   return false;
 }
 
+async function selectApp(apps: ReadonlyArray<{ display: string; app: AppConfig }>): Promise<AppConfig | null> {
+  const fzfArgs = getFzfCommand();
+
+  const fzfProcess = Bun.spawn(fzfArgs, {
+    stdin: "pipe",
+    stdout: "pipe",
+    stderr: "inherit",
+  });
+
+  fzfProcess.stdin.write(apps.map((a) => a.display).join("\n"));
+  fzfProcess.stdin.end();
+
+  const exitCode = await fzfProcess.exited;
+  if (exitCode !== 0) return null;
+
+  const selection = (await new Response(fzfProcess.stdout).text()).trim();
+  const found = apps.find((a) => a.display === selection);
+  return found?.app ?? null;
+}
+
 async function main(): Promise<void> {
-  const app = await selectApp();
+  const config = loadUserConfig();
+  const apps = getAppsForDisplay(config);
+  const { socket, session } = config;
+  
+  const app = await selectApp(apps);
   if (!app) {
     process.exit(0);
   }
 
-  if (!hasSession()) {
+  if (!hasSession(socket, session)) {
     // Create new session with selected app as first window
-    run(["tmux", "-L", SOCKET, "new-session", "-d", "-s", SESSION, "-n", app.name, app.cmd]);
-    setupSession(getBinDir());
-  } else if (!hasWindow(app.name)) {
+    run(["tmux", "-L", socket, "new-session", "-d", "-s", session, "-n", app.name, app.cmd]);
+    setupSession(getBinDir(), config);
+  } else if (!hasWindow(socket, session, app.name)) {
     // Create new window for this app
-    run(["tmux", "-L", SOCKET, "new-window", "-t", SESSION, "-n", app.name, app.cmd]);
+    run(["tmux", "-L", socket, "new-window", "-t", session, "-n", app.name, app.cmd]);
   }
 
   // Select the app window
-  run(["tmux", "-L", SOCKET, "select-window", "-t", `${SESSION}:${app.name}`]);
+  run(["tmux", "-L", socket, "select-window", "-t", `${session}:${app.name}`]);
 
   // If inside apps session (nested fzf), just exit - window is already selected
-  if (isInsideAppsSession()) {
+  if (isInsideAppsSession(socket)) {
     process.exit(0);
   }
 
@@ -109,7 +92,7 @@ async function main(): Promise<void> {
   const binDir = getBinDir();
   run([
     "tmux", "-L", "tmesh-client", "run-shell", "-b",
-    `sleep 0.1 && tmux -L tmesh-client display-popup -w 80% -h 80% -b rounded -T ' Terminal ' -E ${binDir}/popup-shell`
+    `sleep 0.1 && tmux -L tmesh-client display-popup -w 80% -h 80% -b rounded -T '${config.popup.titles.terminal}' -E ${binDir}/popup-shell`
   ]);
 
   process.exit(0);

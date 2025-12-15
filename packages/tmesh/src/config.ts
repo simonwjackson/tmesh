@@ -1,6 +1,7 @@
 import { hostname } from "node:os";
 
 import type { CliOptions, TmeshConfig } from "./types";
+import { getUserTmuxConfigPath, hasUserTmuxConfig, loadUserConfig } from "./user-config";
 
 /**
  * Base tmux configuration shared between client and server
@@ -65,19 +66,36 @@ function getBinDir(): string {
 
 /**
  * Client-specific tmux configuration
+ * Loads user config for popup titles and sets up #{@tmesh_bin_dir} variable
  */
 export function getTmeshClientConfig(): string {
   const binDir = getBinDir();
-  return `
+  const userConfig = loadUserConfig();
+  const { popup } = userConfig;
+  
+  let config = `
 ${TMESH_BASE_CONFIG}
+
+# tmesh binary directory - can be used in user config as #{@tmesh_bin_dir}
+set -g @tmesh_bin_dir "${binDir}"
 
 # Toggle shell popup - M-s toggles popup with shell window
 # Centered, 80%, rounded border
-bind -n M-s display-popup -d '#{pane_current_path}' -w 80% -h 80% -b rounded -T ' Terminal ' -E ${binDir}/popup-shell
+bind -n M-s display-popup -d '#{pane_current_path}' -w 80% -h 80% -b rounded -T '${popup.titles.terminal}' -E ${binDir}/popup-shell
 
 # Toggle app selector popup - M-a shows small fzf, app-select triggers large popup
-bind -n M-a display-popup -d '#{pane_current_path}' -w 20% -h 20% -b rounded -T ' Apps ' -E ${binDir}/app-select
+bind -n M-a display-popup -d '#{pane_current_path}' -w 20% -h 20% -b rounded -T '${popup.titles.apps}' -E ${binDir}/app-select
 `;
+
+  // Source user tmux.conf if it exists
+  if (hasUserTmuxConfig()) {
+    config += `
+# Source user tmux overrides
+source-file "${getUserTmuxConfigPath()}"
+`;
+  }
+
+  return config;
 }
 
 // Keep for backwards compatibility

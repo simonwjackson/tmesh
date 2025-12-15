@@ -1,0 +1,37 @@
+# tmesh development commands
+
+# Default recipe - show help
+default:
+    @just --list
+
+# Update nix hashes after dependency changes
+update-hashes:
+    ./nix/scripts/update-hashes.sh
+
+# Build the nix package
+build:
+    cd ../.. && nix build .#tmesh
+
+# Build locally with bun
+build-local:
+    bun run build
+
+# Run tests
+test:
+    bun test
+
+# Typecheck
+typecheck:
+    bun run typecheck
+
+# Dev mode - run directly
+dev:
+    bun run src/cli.ts
+
+# Install dependencies with npm (for updating package-lock.json)
+install:
+    npm install
+
+# Clean build artifacts
+clean:
+    rm -rf dist node_modules

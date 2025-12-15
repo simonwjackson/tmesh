@@ -16,15 +16,25 @@
     tmux
   ];
 
-  # Build the tmesh CLI using Bun
-  tmesh = pkgs.stdenv.mkDerivation {
-    inherit pname version;
+  # Load npmDeps hash from hashes.json
+  defaultNpmDepsHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+  hashesFile = ./nix/hashes.json;
+  hashesData =
+    if builtins.pathExists hashesFile
+    then builtins.fromJSON (builtins.readFile hashesFile)
+    else {};
+  npmDepsHash = hashesData.npmDeps or defaultNpmDepsHash;
 
-    # Use the directory as-is without filtering
+  # Build the tmesh CLI using npm for deps, bun for compilation
+  tmesh = pkgs.buildNpmPackage {
+    inherit pname version npmDepsHash;
+
     src = builtins.path {
       path = ./.;
       name = "tmesh-src";
     };
+
+    makeCacheWritable = true;
 
     nativeBuildInputs = with pkgs; [
       bun
@@ -37,7 +47,7 @@
     buildPhase = ''
       runHook preBuild
 
-      # Build standalone executables with version injected
+      # Build standalone executables with version injected using bun
       bun build src/cli.ts --compile \
         --define '__VERSION__="${version}"' \
         --outfile=tmesh

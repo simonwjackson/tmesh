@@ -1,7 +1,0 @@
-[test]
-coverage = true
-coverageDir = "coverage"
-
-[run]
-# Automatically install missing packages
-bun = true

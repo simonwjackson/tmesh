@@ -2,8 +2,7 @@
  * Common utilities for tmesh-apps popup functionality
  */
 
-export const SOCKET = "tmesh-apps";
-export const SESSION = "apps";
+import type { UserConfig } from "./user-config";
 
 /**
  * Get the directory where tmesh binaries are located
@@ -19,59 +18,69 @@ export function run(args: string[]): boolean {
   return result.exitCode === 0;
 }
 
-export function hasSession(): boolean {
-  return run(["tmux", "-L", SOCKET, "has-session", "-t", SESSION]);
+export function hasSession(socket: string, session: string): boolean {
+  return run(["tmux", "-L", socket, "has-session", "-t", session]);
 }
 
-export function hasWindow(name: string): boolean {
+export function hasWindow(socket: string, session: string, name: string): boolean {
   const result = Bun.spawnSync([
-    "tmux", "-L", SOCKET, "list-windows", "-t", SESSION, "-F", "#{window_name}"
+    "tmux", "-L", socket, "list-windows", "-t", session, "-F", "#{window_name}"
   ]);
   if (result.exitCode !== 0) return false;
   const windows = new TextDecoder().decode(result.stdout).trim().split("\n");
   return windows.includes(name);
 }
 
-export function setupSession(binDir: string): void {
-  // Disable prefix keys
-  run(["tmux", "-L", SOCKET, "set", "-g", "prefix", "None"]);
-  run(["tmux", "-L", SOCKET, "set", "-g", "prefix2", "None"]);
+/**
+ * Helper to run tmux set command
+ */
+function tmuxSet(socket: string, option: string, value: string): void {
+  run(["tmux", "-L", socket, "set", "-g", option, value]);
+}
+
+export function setupSession(binDir: string, config: UserConfig): void {
+  const { socket, popup } = config;
+  
+  // Disable prefix keys for popup session
+  tmuxSet(socket, "prefix", "None");
+  tmuxSet(socket, "prefix2", "None");
   
   // Status bar configuration
-  run(["tmux", "-L", SOCKET, "set", "-g", "status", "2"]);  // 2-line status bar for spacing
-  run(["tmux", "-L", SOCKET, "set", "-g", "status-position", "top"]);
-  run(["tmux", "-L", SOCKET, "set", "-g", "status-style", "bg=default,fg=default"]);
-  run(["tmux", "-L", SOCKET, "set", "-g", "status-format[1]", ""]);  // Empty second line for spacing
-  run(["tmux", "-L", SOCKET, "set", "-g", "status-justify", "centre"]);
+  tmuxSet(socket, "status", "2");
+  tmuxSet(socket, "status-position", "top");
+  tmuxSet(socket, "status-style", "bg=default,fg=default");
+  tmuxSet(socket, "status-format[1]", "");
+  tmuxSet(socket, "status-justify", "centre");
   
   // Left side: hostname with icon
-  run(["tmux", "-L", SOCKET, "set", "-g", "status-left", "  #H "]);
-  run(["tmux", "-L", SOCKET, "set", "-g", "status-left-style", "bold"]);
-  run(["tmux", "-L", SOCKET, "set", "-g", "status-left-length", "30"]);
+  tmuxSet(socket, "status-left", "  #H ");
+  tmuxSet(socket, "status-left-style", "bold");
+  tmuxSet(socket, "status-left-length", "30");
   
-  // Right side: empty for now
-  run(["tmux", "-L", SOCKET, "set", "-g", "status-right", ""]);
+  // Right side: empty
+  tmuxSet(socket, "status-right", "");
   
   // Window status (centered) with separators
-  run(["tmux", "-L", SOCKET, "set", "-g", "window-status-format", " #W "]);
-  run(["tmux", "-L", SOCKET, "set", "-g", "window-status-current-format", " #W "]);
-  run(["tmux", "-L", SOCKET, "set", "-g", "window-status-style", "dim"]);
-  run(["tmux", "-L", SOCKET, "set", "-g", "window-status-current-style", "bold"]);
-  run(["tmux", "-L", SOCKET, "set", "-g", "window-status-separator", " • "]);
+  tmuxSet(socket, "window-status-format", " #W ");
+  tmuxSet(socket, "window-status-current-format", " #W ");
+  tmuxSet(socket, "window-status-style", "dim");
+  tmuxSet(socket, "window-status-current-style", "bold");
+  tmuxSet(socket, "window-status-separator", " • ");
   
   // M-s closes the popup
-  run(["tmux", "-L", SOCKET, "bind", "-n", "M-s", "detach-client"]);
+  run(["tmux", "-L", socket, "bind", "-n", "M-s", "detach-client"]);
+  
   // M-a opens the app selector within the popup (styled)
   run([
-    "tmux", "-L", SOCKET, "bind", "-n", "M-a",
+    "tmux", "-L", socket, "bind", "-n", "M-a",
     "display-popup", "-w", "20%", "-h", "20%", "-x", "C", "-y", "5",
-    "-b", "rounded", "-T", " Apps ",
+    "-b", "rounded", "-T", popup.titles.apps,
     "-E", `${binDir}/app-select`
   ]);
 }
 
-export function attachToSession(): never {
-  const attach = Bun.spawnSync(["tmux", "-L", SOCKET, "attach", "-t", SESSION], {
+export function attachToSession(socket: string, session: string): never {
+  const attach = Bun.spawnSync(["tmux", "-L", socket, "attach", "-t", session], {
     stdin: "inherit",
     stdout: "inherit",
     stderr: "inherit",
