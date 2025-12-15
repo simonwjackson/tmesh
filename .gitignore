@@ -1,3 +1,4 @@
 result
 .direnv
 packages/tmesh/node_modules
+packages/tmesh/dist

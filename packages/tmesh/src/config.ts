@@ -58,8 +58,8 @@ set -g status off
 export const TMESH_CLIENT_CONFIG = `
 ${TMESH_BASE_CONFIG}
 
-# inline a script
-bind -n M-s display-popup -E server-select
+# Toggle terminal popup (close if open, open if closed)
+bind -n M-s display-popup -d '#{pane_current_path}' -w 80% -h 80% -E 'tmux -L tmesh-apps new-session -A -s tmesh-apps "tmux set prefix None; tmux set prefix2 None; tmux bind -n M-s detach-client; $SHELL"'
 `;
 
 /**
@@ -67,7 +67,6 @@ bind -n M-s display-popup -E server-select
  */
 export const TMESH_SERVER_CONFIG = `
 ${TMESH_BASE_CONFIG}
-${TMESH_CLIENT_CONFIG}
 
 set -g prefix C-a
 unbind-key C-b
