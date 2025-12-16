@@ -122,12 +122,7 @@ in {
       mode = "0644";
     };
 
-    environment.etc."${pname}/tmesh-server.tmux.conf" = {
-      text = cfg.tmeshServerTmuxConfig;
-      mode = "0644";
-    };
-
-    environment.etc."${pname}/tmesh.tmux.conf" = {
+    environment.etc."${pname}/tmux.conf" = {
       text = cfg.tmeshTmuxConfig;
       mode = "0644";
     };

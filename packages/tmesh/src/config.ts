@@ -7,6 +7,10 @@ import { getUserTmuxConfigPath, hasUserTmuxConfig, loadUserConfig } from "./user
  * Base tmux configuration shared between client and server
  */
 export const TMESH_BASE_CONFIG = `
+# Extended keys support (CSI u / kitty keyboard protocol)
+set -s extended-keys on
+set -as terminal-features ',*:extkeys'
+
 # INFO: https://github.com/tmux/tmux/wiki/Clipboard#terminal-support---tmux-inside-tmux
 set -s set-clipboard on
 
