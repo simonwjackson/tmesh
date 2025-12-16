@@ -70,24 +70,56 @@ function getConfigDir(): string {
 }
 
 /**
+ * System-wide config directory (NixOS module places config here)
+ */
+const SYSTEM_CONFIG_DIR = "/etc/tmesh";
+
+/**
  * Get the path to the YAML config file
+ * Checks user config first, then falls back to system config
  */
 export function getConfigPath(): string {
-  return join(getConfigDir(), "config.yaml");
+  const userConfig = join(getConfigDir(), "config.yaml");
+  if (existsSync(userConfig)) {
+    return userConfig;
+  }
+  const systemConfig = join(SYSTEM_CONFIG_DIR, "config.yaml");
+  if (existsSync(systemConfig)) {
+    return systemConfig;
+  }
+  return userConfig; // Return user path as default (even if doesn't exist)
 }
 
 /**
  * Get the path to the user's tmux.conf override
+ * Checks user config first, then falls back to system config
  */
 export function getUserTmuxConfigPath(): string {
-  return join(getConfigDir(), "tmux.conf");
+  const userConfig = join(getConfigDir(), "tmux.conf");
+  if (existsSync(userConfig)) {
+    return userConfig;
+  }
+  const systemConfig = join(SYSTEM_CONFIG_DIR, "tmux.conf");
+  if (existsSync(systemConfig)) {
+    return systemConfig;
+  }
+  return userConfig;
 }
 
 /**
  * Get the path to the fzf.conf file
+ * Checks user config first, then falls back to system config
  */
 export function getFzfConfigPath(): string {
-  return join(getConfigDir(), "fzf.conf");
+  const userConfig = join(getConfigDir(), "fzf.conf");
+  if (existsSync(userConfig)) {
+    return userConfig;
+  }
+  const systemConfig = join(SYSTEM_CONFIG_DIR, "fzf.conf");
+  if (existsSync(systemConfig)) {
+    return systemConfig;
+  }
+  return userConfig;
 }
 
 /**
